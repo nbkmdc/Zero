@@ -117,7 +117,7 @@ export function MailIframe({ html, senderEmail }: { html: string; senderEmail: s
     if (iframeRef.current?.contentWindow?.document.body) {
       const body = iframeRef.current.contentWindow.document.body;
       body.style.backgroundColor =
-        resolvedTheme === 'dark' ? 'rgb(10, 10, 10)' : 'rgb(245, 245, 245)';
+        resolvedTheme === 'dark' ? 'panelDark' : 'panelLight';
       requestAnimationFrame(() => {
         fixNonReadableColors(body);
       });
@@ -140,7 +140,7 @@ export function MailIframe({ html, senderEmail }: { html: string; senderEmail: s
   }, []);
 
   return (
-    <>
+    <div>
       {cspViolation && !isTrustedSender && !data?.settings?.externalImages && (
         <div className="flex items-center justify-start bg-amber-600/20 px-2 py-1 text-sm text-amber-600">
           <p>{t('common.actions.hiddenImagesWarning')}</p>
@@ -157,18 +157,15 @@ export function MailIframe({ html, senderEmail }: { html: string; senderEmail: s
           </button>
         </div>
       )}
-      <iframe
-        height={height}
+      <div
         ref={iframeRef}
-        className={cn(
-          '!min-h-0 w-full flex-1 overflow-hidden px-4 transition-opacity duration-200',
-        )}
-        title="Email Content"
+        className={cn('w-full flex-1 overflow-hidden px-4 transition-opacity duration-200 text-black dark:text-white')}
+        dangerouslySetInnerHTML={{ __html: processedHtml ?? '' }}
         style={{
           width: '100%',
           overflow: 'hidden',
         }}
       />
-    </>
+    </div>
   );
 }

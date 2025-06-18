@@ -236,7 +236,7 @@ export function NavMain({ items }: NavMainProps) {
             </SidebarMenuItem>
           </Collapsible>
         ))}
-        {!pathname.includes('/settings') && !isBottomNav && state !== 'collapsed' && (
+        {/* {!pathname.includes('/settings') && !isBottomNav && state !== 'collapsed' && (
           <Collapsible defaultOpen={true} className="group/collapsible flex-col">
             <SidebarMenuItem className="mb-4" style={{ height: 'auto' }}>
               <div className="mx-2 mb-4 flex items-center justify-between">
@@ -265,7 +265,7 @@ export function NavMain({ items }: NavMainProps) {
               ) : null}
             </SidebarMenuItem>
           </Collapsible>
-        )}
+        )} */}
       </SidebarMenu>
     </SidebarGroup>
   );

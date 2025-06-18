@@ -506,7 +506,7 @@ const ActionButton = ({ onClick, icon, text, shortcut }: ActionButtonProps) => {
       {shortcut && (
         <kbd
           className={cn(
-            'border-muted-foreground/10 bg-accent h-6 rounded-[6px] border px-1.5 font-mono text-xs leading-6',
+            'border-muted-foreground/10 bg-accent h-6 rounded-[6px] border px-1.5 font-mono text-xs leading-6 text-black dark:text-white',
             '-me-1 ms-auto hidden max-h-full items-center md:inline-flex',
           )}
         >
@@ -1369,74 +1369,51 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
           />
         )}
         <div className="relative h-full overflow-y-auto">
-          <div className={cn('px-4', index === 0 && 'border-b py-4')}>
+          <div
+            className={cn(
+              'px-4',
+              index === 0 && 'bg-panelLight dark:bg-panelDark mb-2 rounded-b-xl pb-2',
+            )}
+          >
             {index === 0 && (
-              <>
+              <div>
                 <span className="inline-flex items-center gap-2 font-medium text-black dark:text-white">
+            
                   <span>
+                    
                     {emailData.subject}{' '}
                     <span className="text-muted-foreground dark:text-[#8C8C8C]">
                       {totalEmails && totalEmails > 1 && `[${totalEmails}]`}
                     </span>
                   </span>
+                  
+                  <RenderLabels labels={threadLabels} />
                 </span>
 
-                <div className="mt-2 flex items-center gap-2">
-                  {emailData?.tags?.length ? (
+                <div className="mt- flex items-center gap-2">
+                  {/* {emailData?.tags?.length ? (
                     <MailDisplayLabels labels={emailData?.tags.map((t) => t.name) || []} />
-                  ) : null}
-                  {emailData?.tags?.length ? (
+                  ) : null} */}
+                  {/* {emailData?.tags?.length ? (
                     <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
-                  ) : null}
-                  <RenderLabels labels={threadLabels} />
-                  {threadLabels.length ? (
+                  ) : null} */}
+                  {/* {threadLabels.length ? (
                     <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
-                  ) : null}
-                  <div className="text-muted-foreground flex items-center gap-2 text-sm dark:text-[#8C8C8C]">
-                    {(() => {
-                      if (people.length <= 2) {
-                        return people.map(renderPerson);
-                      }
-
-                      // Only show first two people plus count if we have at least two people
-                      const firstPerson = people[0];
-                      const secondPerson = people[1];
-
-                      if (firstPerson && secondPerson) {
-                        return (
-                          <>
-                            {renderPerson(firstPerson)}
-                            {renderPerson(secondPerson)}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="text-sm">
-                                  +{people.length - 2}{' '}
-                                  {people.length - 2 === 1 ? 'other' : 'others'}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent className="flex flex-col gap-1">
-                                {people.slice(2).map((person, index) => (
-                                  <div key={index}>{renderPerson(person)}</div>
-                                ))}
-                              </TooltipContent>
-                            </Tooltip>
-                          </>
-                        );
-                      }
-
-                      return null;
-                    })()}
-                  </div>
+                  ) : null} */}
                 </div>
                 {brainState?.enabled && <AiSummary />}
                 {threadAttachments && threadAttachments.length > 0 && (
                   <ThreadAttachments attachments={threadAttachments} />
                 )}
-              </>
+              </div>
             )}
           </div>
+
           <div
-            className="flex cursor-pointer flex-col pb-2 transition-all duration-200"
+            className={cn(
+              'bg-panelLight dark:bg-panelDark flex cursor-pointer flex-col rounded-t-xl pb-2 transition-all duration-200',
+              isCollapsed && 'rounded-xl',
+            )}
             onClick={toggleCollapse}
           >
             <div className="mt-3 flex w-full items-start justify-between gap-4 px-4">
@@ -1466,7 +1443,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 //   extra: emailData?.sender?.extra || '',
                               });
                             }}
-                            className="hover:bg-muted font-semibold"
+                            className="hover:bg-muted font-semibold text-black dark:text-white"
                           >
                             {cleanNameDisplay(emailData?.sender?.name)}
                           </span>
@@ -1619,7 +1596,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                   e.stopPropagation();
                                   e.preventDefault();
                                 }}
-                                className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md bg-white focus:outline-none focus:ring-0 dark:bg-[#313131]"
+                                className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md focus:outline-none focus:ring-0"
                               >
                                 <ThreeDots className="fill-iconLight dark:fill-iconDark" />
                               </button>
@@ -1756,20 +1733,13 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
 
           <div
             className={cn(
-              'h-0 overflow-hidden transition-all duration-200',
-              !isCollapsed && 'h-[1px]',
-            )}
-          ></div>
-
-          <div
-            className={cn(
-              'grid overflow-hidden transition-all duration-200',
+              'bg-panelLight dark:bg-panelDark mb-2 grid overflow-hidden rounded-b-xl transition-all duration-200',
               isCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
             )}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="min-h-0 overflow-hidden">
-              <div className="h-fit w-full p-0">
+              <div className="h-fit w-full p-0 ">
                 {/* mail main body */}
                 {emailData?.decodedBody ? (
                   <MailIframe html={emailData?.decodedBody} senderEmail={emailData.sender.email} />

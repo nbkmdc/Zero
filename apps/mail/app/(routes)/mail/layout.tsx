@@ -10,7 +10,7 @@ export default function MailLayout() {
   return (
     // <VoiceProvider>
     <HotkeyProviderWrapper>
-      <AppSidebar />
+      {/* <AppSidebar /> */}
       <div className="bg-sidebar dark:bg-sidebar w-full">
         <Outlet />
       </div>
