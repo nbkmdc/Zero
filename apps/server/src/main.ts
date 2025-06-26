@@ -1,10 +1,4 @@
 import {
-  createUpdatedMatrixFromNewEmail,
-  initializeStyleMatrixFromEmail,
-  type EmailMatrix,
-  type WritingStyleMatrix,
-} from './services/writing-style-service';
-import {
   account,
   connection,
   note,

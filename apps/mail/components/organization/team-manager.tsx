@@ -267,7 +267,6 @@ export function TeamManager({ orgId }: TeamManagerProps) {
             </Button>
           </div>
         </div>
-
         <CollapsibleContent className="ml-6 mt-2 space-y-2">
           {teamMembers.map((member) => (
             <div key={member.id} className="flex items-center gap-2 text-sm">
@@ -286,7 +285,6 @@ export function TeamManager({ orgId }: TeamManagerProps) {
               </Button>
             </div>
           ))}
-
           {/* Add unassigned members to this team */}
           {getUnassignedMembers().map((member) => (
             <div key={member.id} className="flex items-center gap-2 text-sm opacity-60">
