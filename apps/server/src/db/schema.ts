@@ -297,3 +297,25 @@ export const oauthConsent = createTable(
     index('oauth_consent_given_idx').on(t.consentGiven),
   ],
 );
+
+export const labelOrder = createTable(
+  'label_order',
+  {
+    id: text('id').primaryKey(),
+    connectionId: text('connection_id')
+      .notNull()
+      .references(() => connection.id, { onDelete: 'cascade' }),
+    labelId: text('label_id').notNull(),
+    order: integer('order').notNull().default(999999),
+    customColor: jsonb('custom_color').$type<{
+      backgroundColor: string;
+      textColor: string;
+    }>(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [unique().on(table.connectionId, table.labelId)],
+);

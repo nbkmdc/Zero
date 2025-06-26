@@ -16,8 +16,8 @@ import { type Connection, type ConnectionContext, type WSMessage } from 'agents'
 import { EPrompts, type IOutgoingMessage, type ParsedMessage } from '../types';
 import type { IGetThreadResponse, MailManager } from '../lib/driver/types';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { connectionToDriver, getZeroDB } from '../lib/server-utils';
 import { createSimpleAuth, type SimpleAuth } from '../lib/auth';
-import { connectionToDriver } from '../lib/server-utils';
 import type { CreateDraftData } from '../lib/schemas';
 import { FOLDERS, parseHeaders } from '../lib/utils';
 import { env, RpcTarget } from 'cloudflare:workers';
@@ -159,6 +159,41 @@ export class AgentRpcDO extends RpcTarget {
 
   async deleteLabel(id: string) {
     return await this.mainDo.deleteLabel(id);
+  }
+
+  async getLabelOrders() {
+    // Get the connection to find the user ID
+    const { db: mainDb, conn } = createDb(env.HYPERDRIVE.connectionString);
+    try {
+      const _connection = await mainDb.query.connection.findFirst({
+        where: eq(connection.id, this.connectionId),
+      });
+      if (!_connection) throw new Error('Connection not found');
+
+      // Use the user ID to get the ZeroDB instance
+      const db = await getZeroDB(_connection.userId);
+      return await db.getLabelOrders(this.connectionId);
+    } finally {
+      await conn.end();
+    }
+  }
+
+  async updateLabelOrders(labelOrders: { id: string; order: number }[]) {
+    // Get the connection to find the user ID
+    const { db: mainDb, conn } = createDb(env.HYPERDRIVE.connectionString);
+    try {
+      const _connection = await mainDb.query.connection.findFirst({
+        where: eq(connection.id, this.connectionId),
+      });
+      if (!_connection) throw new Error('Connection not found');
+
+      // Use the user ID to get the ZeroDB instance
+      const db = await getZeroDB(_connection.userId);
+      await db.updateLabelOrders(this.connectionId, labelOrders);
+      return { success: true };
+    } finally {
+      await conn.end();
+    }
   }
 
   async bulkDelete(threadIds: string[]) {
@@ -326,7 +361,7 @@ export class ZeroAgent extends AIChatAgent<typeof env> {
   }
 
   async dropTables() {
-    return this.sql`       
+    return this.sql`
         DROP TABLE IF EXISTS threads;`;
   }
 
@@ -844,12 +879,12 @@ export class ZeroAgent extends AIChatAgent<typeof env> {
 
         this.sql`
           INSERT OR REPLACE INTO threads (
-            id, 
-            thread_id, 
-            provider_id,  
-            latest_sender, 
-            latest_received_on, 
-            latest_subject, 
+            id,
+            thread_id,
+            provider_id,
+            latest_sender,
+            latest_received_on,
+            latest_subject,
             latest_label_ids,
             updated_at
           ) VALUES (

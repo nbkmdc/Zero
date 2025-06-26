@@ -7,6 +7,7 @@ import {
 import {
   account,
   connection,
+  labelOrder,
   note,
   session,
   user,
@@ -171,10 +172,48 @@ export class DbRpcDO extends RpcTarget {
   ) {
     return await this.mainDo.updateConnection(connectionId, updatingInfo);
   }
+
+  async getLabelOrders(connectionId: string) {
+    return await this.mainDo.getLabelOrders(connectionId);
+  }
+
+  async updateLabelOrders(connectionId: string, labelOrders: { id: string; order: number }[]) {
+    return await this.mainDo.updateLabelOrders(connectionId, labelOrders);
+  }
 }
 
 class ZeroDB extends DurableObject<Env> {
   db: DB = createDb(env.HYPERDRIVE.connectionString).db;
+
+  async getLabelOrders(connectionId: string): Promise<(typeof labelOrder.$inferSelect)[]> {
+    return await this.db.query.labelOrder.findMany({
+      where: eq(labelOrder.connectionId, connectionId),
+    });
+  }
+
+  async updateLabelOrders(connectionId: string, labelOrders: { id: string; order: number }[]) {
+    const { nanoid } = await import('nanoid');
+
+    return await this.db.transaction(async (tx) => {
+      for (const { id: labelId, order } of labelOrders) {
+        await tx
+          .insert(labelOrder)
+          .values({
+            id: nanoid(),
+            connectionId,
+            labelId,
+            order,
+          })
+          .onConflictDoUpdate({
+            target: [labelOrder.connectionId, labelOrder.labelId],
+            set: {
+              order,
+              updatedAt: new Date(),
+            },
+          });
+      }
+    });
+  }
 
   async setMetaData(userId: string) {
     return new DbRpcDO(this, userId);
