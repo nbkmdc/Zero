@@ -4,6 +4,7 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { TRPCError } from '@trpc/server';
 import { createDriver } from '../../lib/driver';
 import { z } from 'zod';
+import sanitizeHtml from 'sanitize-html';
 
 const signatureSchema = z.object({
   id: z.string().optional(),
@@ -144,18 +145,16 @@ export const signaturesRouter = router({
       const skippedSignatures: any[] = [];
 
       for (const gmailSig of gmailSignatures) {
-        // TODO: Add HTML support later
         try {
-          const plainTextContent = gmailSig.signature
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<\/p>/gi, '\n')
-            .replace(/<[^>]*>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .trim();
+          const plainTextContent = sanitizeHtml(gmailSig.signature, {
+            allowedTags: [],
+            allowedAttributes: {},
+            textFilter: (text) => {
+              return text
+                .replace(/\s+/g, ' ')
+                .trim();
+            }
+          });
 
           if (plainTextContent) {
             const isDuplicate = existingSignatures.some((existing: any) => {
