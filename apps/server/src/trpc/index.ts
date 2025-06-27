@@ -3,6 +3,7 @@ import { cookiePreferencesRouter } from './routes/cookies';
 import { connectionsRouter } from './routes/connections';
 import { shortcutRouter } from './routes/shortcut';
 import { settingsRouter } from './routes/settings';
+import { signaturesRouter } from './routes/signatures';
 import { getContext } from 'hono/context-storage';
 import { draftsRouter } from './routes/drafts';
 import { labelsRouter } from './routes/label';
@@ -27,6 +28,7 @@ export const appRouter = router({
   notes: notesRouter,
   shortcut: shortcutRouter,
   settings: settingsRouter,
+  signatures: signaturesRouter,
   user: userRouter,
 });
 

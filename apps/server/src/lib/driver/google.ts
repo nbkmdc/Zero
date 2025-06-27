@@ -151,6 +151,29 @@ export class GoogleMailManager implements MailManager {
       { threadIds },
     );
   }
+
+  public getGmailSignatures() {
+    return this.withErrorHandler('getGmailSignatures', async () => {
+      const settings = await this.gmail.users.settings.sendAs.list({
+        userId: 'me',
+      });
+
+      if (!settings.data.sendAs) {
+        return [];
+      }
+
+      return settings.data.sendAs
+        .filter((sendAs) => sendAs.signature && sendAs.signature.trim() !== '')
+        .map((sendAs) => ({
+          email: sendAs.sendAsEmail || '',
+          displayName: sendAs.displayName || sendAs.sendAsEmail || '',
+          signature: sendAs.signature || '',
+          isPrimary: sendAs.isPrimary || false,
+          isDefault: sendAs.isDefault || false,
+        }));
+    });
+  }
+
   public getUserInfo() {
     return this.withErrorHandler(
       'getUserInfo',

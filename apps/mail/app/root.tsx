@@ -54,7 +54,8 @@ export async function loader({ request }: Route.ClientLoaderArgs) {
 }
 
 export function Layout({ children }: PropsWithChildren) {
-  const { locale = 'en', messages, connectionId } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  const { locale = 'en', messages, connectionId } = loaderData || {};
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>

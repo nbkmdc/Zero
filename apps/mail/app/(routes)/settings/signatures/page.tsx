@@ -1,386 +1,516 @@
-//
-// // DEPRECATED -
-// import {
-//   Form,
-//   FormControl,
-//   FormDescription,
-//   FormField,
-//   FormItem,
-//   FormLabel,
-// } from '@/components/ui/form';
-// import { SettingsCard } from '@/components/settings/settings-card';
-// import { useState, useEffect, useRef } from 'react';
-// import { useTranslations } from 'use-intl';
-// import { zodResolver } from '@hookform/resolvers/zod';
-// import { saveUserSettings } from '@/actions/settings';
-// import { useSettings } from '@/hooks/use-settings';
-// import { Button } from '@/components/ui/button';
-// import { Switch } from '@/components/ui/switch';
-// import { Textarea } from '@/components/ui/textarea';
-// import { toast } from 'sonner';
-// import * as z from 'zod';
-// import { useForm } from 'react-hook-form';
-// import DOMPurify from 'dompurify';
-// import { useImageLoading } from '@/hooks/use-image-loading';
-// import Editor from '@/components/create/editor';
-// import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-// import { SignaturePreview } from '@/components/mail/signature-preview';
-// import { JSONContent } from 'novel';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { SettingsCard } from '@/components/settings/settings-card';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useTRPC } from '@/providers/query-provider';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'use-intl';
+import { useForm } from 'react-hook-form';
+import { Edit2, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Download, AlertTriangle } from 'lucide-react';
+import { useActiveConnection } from '@/hooks/use-connections';
+import * as z from 'zod';
 
-// const formSchema = z.object({
-//   signature: z.object({
-//     enabled: z.boolean(),
-//     content: z.string().min(1).max(10000),
-//     includeByDefault: z.boolean(),
-//     editorType: z.enum(['plain', 'rich']).default('plain'),
-//   }),
-// });
+const signatureFormSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+  content: z.string().max(10000, 'Content must be less than 10,000 characters'),
+  isDefault: z.boolean().default(false),
+});
 
-// export default function SignaturesPage() {
-//   const [isSaving, setIsSaving] = useState(false);
-//   const [signatureHtml, setSignatureHtml] = useState('');
-//   const [editorContent, setEditorContent] = useState<JSONContent | undefined>(undefined);
-//   // Using autofocus instead of a ref for better user experience
-//   const [autoFocus, setAutoFocus] = useState(false);
-//   const t = useTranslations();
-//   const { settings, mutate } = useSettings();
+interface Signature {
+  id: string;
+  name: string;
+  content: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-//   const form = useForm<z.infer<typeof formSchema>>({
-//     resolver: zodResolver(formSchema),
-//     defaultValues: {
-//       signature: {
-//         enabled: false,
-//         content: '--<br><br>Sent via <a href="https://0.email" target="_blank" style="color: #016FFE; text-decoration: none;">0.email</a>',
-//         includeByDefault: true,
-//         editorType: 'plain',
-//       },
-//     },
-//   });
+export default function SignaturesPage() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingSignature, setEditingSignature] = useState<Signature | null>(null);
+  const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deletingSignatureId, setDeletingSignatureId] = useState<string | null>(null);
+  const t = useTranslations();
+  const trpc = useTRPC();
 
-//   // Helper function to convert HTML to JSONContent more accurately
-//   const tryParseHtmlToContent = (html: string): JSONContent | undefined => {
-//     try {
-//       // Create a temporary div to parse the HTML
-//       const div = document.createElement('div');
-//       div.innerHTML = html;
+  const { data: settings } = useQuery(trpc.settings.get.queryOptions());
+  const { mutateAsync: saveUserSettings } = useMutation(trpc.settings.save.mutationOptions());
 
-//       // Return as a document with proper structure preserving paragraphs
-//       // This is a basic implementation - for more complex conversions, consider using a
-//       // dedicated HTML-to-ProseMirror conversion library
-//       const content: any[] = [];
+  const { data: signatures, error, isLoading, refetch } = useQuery(
+    trpc.signatures.list.queryOptions()
+  );
 
-//       // Process each child element to create proper paragraph nodes
-//       Array.from(div.childNodes).forEach(node => {
-//         if (node.nodeType === Node.TEXT_NODE) {
-//           // Plain text nodes
-//           if (node.textContent?.trim()) {
-//             content.push({
-//               type: 'paragraph',
-//               content: [{ type: 'text', text: node.textContent }]
-//             });
-//           }
-//         } else if (node.nodeName === 'BR') {
-//           // Line breaks - add an empty paragraph
-//           content.push({ type: 'paragraph' });
-//         } else if (node.nodeName === 'P' || node.nodeName === 'DIV') {
-//           // Paragraph or div elements
-//           content.push({
-//             type: 'paragraph',
-//             content: [{ type: 'text', text: node.textContent || '' }]
-//           });
-//         } else {
-//           // Other elements - try to preserve their content
-//           content.push({
-//             type: 'paragraph',
-//             content: [{ type: 'text', text: node.textContent || '' }]
-//           });
-//         }
-//       });
+  const signaturesArray = Array.isArray(signatures) ? signatures : [];
 
-//       // If no content was created, create a default empty paragraph
-//       if (content.length === 0) {
-//         content.push({ type: 'paragraph' });
-//       }
+  const { mutateAsync: createSignature, isPending: isCreating } = useMutation(
+    trpc.signatures.create.mutationOptions()
+  );
 
-//       return {
-//         type: 'doc',
-//         content
-//       };
-//     } catch (error) {
-//       console.error('Error parsing HTML to content:', error);
-//       return undefined;
-//     }
-//   };
+  const { mutateAsync: updateSignature, isPending: isUpdating } = useMutation(
+    trpc.signatures.update.mutationOptions()
+  );
 
-//   // Initialize from settings
-//   useEffect(() => {
-//     if (settings?.signature) {
-//       // Initialize with editorType defaulting to 'plain' for existing users
-//       form.reset({
-//         signature: {
-//           ...settings.signature,
-//           editorType: settings.signature.editorType || 'plain',
-//         },
-//       });
+  const { mutateAsync: deleteSignature, isPending: isDeleting } = useMutation(
+    trpc.signatures.delete.mutationOptions()
+  );
 
-//       // Set the raw HTML in the state
-//       const signatureHtml = settings.signature.content || '--<br><br>Sent via <a href="https://0.email" target="_blank" style="color: #016FFE; text-decoration: none;">0.email</a>';
-//       setSignatureHtml(signatureHtml);
+  const { mutateAsync: importFromGmail, isPending: isImporting } = useMutation(
+    trpc.signatures.importFromGmail.mutationOptions()
+  );
 
-//       // Attempt to parse HTML to JSONContent for the rich editor
-//       // This is a simple approach - a more robust solution would use a proper HTML to ProseMirror converter
-//       setEditorContent(tryParseHtmlToContent(signatureHtml));
-//     } else {
-//       // For new users with no signature settings yet, set the default content
-//       const defaultSignature = '--<br><br>Sent via <a href="https://0.email" target="_blank" style="color: #016FFE; text-decoration: none;">0.email</a>';
-//       setSignatureHtml(defaultSignature);
-//       setEditorContent(tryParseHtmlToContent(defaultSignature));
-//     }
-//   }, [form, settings]);
+  const { data: activeConnection } = useActiveConnection();
 
-//   async function onSubmit(values: z.infer<typeof formSchema>) {
-//     setIsSaving(true);
+  const form = useForm<z.infer<typeof signatureFormSchema>>({
+    resolver: zodResolver(signatureFormSchema),
+    defaultValues: {
+      name: '',
+      content: '',
+      isDefault: false,
+    },
+  });
 
-//     // Get the content based on editor type
-//     let contentToSave = signatureHtml;
+  const openCreateDialog = () => {
+    setEditingSignature(null);
+    form.reset({
+      name: '',
+      content: '',
+      isDefault: false,
+    });
+    setIsDialogOpen(true);
+  };
 
-//     // Sanitize HTML before saving
-//     const sanitizedHtml = DOMPurify.sanitize(contentToSave, {
-//       ADD_ATTR: ['target'],
-//       FORBID_TAGS: ['script', 'iframe', 'object', 'embed'],
-//     });
+  const openEditDialog = (signature: Signature) => {
+    setEditingSignature(signature);
+    form.reset({
+      name: signature.name,
+      content: signature.content,
+      isDefault: signature.isDefault,
+    });
+    setIsDialogOpen(true);
+  };
 
-//     // Use the sanitized HTML
-//     const formData = {
-//       ...values,
-//       signature: {
-//         ...values.signature,
-//         content: sanitizedHtml
-//       }
-//     };
+  const handleSubmit = async (values: z.infer<typeof signatureFormSchema>) => {
+    try {
+      if (editingSignature) {
+        await updateSignature({
+          id: editingSignature.id,
+          ...values,
+        });
+        toast.success(t('pages.settings.signatures.messages.updated'));
+      } else {
+        await createSignature(values);
+        toast.success(t('pages.settings.signatures.messages.created'));
+      }
+      
+      await refetch();
+      setIsDialogOpen(false);
+      form.reset();
+    } catch (error) {
+      toast.error(t('pages.settings.signatures.messages.failedToSave'));
+      console.error('Failed to save signature:', error);
+    }
+  };
 
-//     try {
-//       // We need to merge with the existing settings
-//       const updatedSettings = {
-//         ...settings,
-//         ...formData,
-//       };
+  const openDeleteConfirm = (signatureId: string) => {
+    setDeletingSignatureId(signatureId);
+    setIsDeleteConfirmOpen(true);
+  };
 
-//       await saveUserSettings(updatedSettings);
-//       await mutate(updatedSettings, { revalidate: false });
+  const handleDelete = async () => {
+    if (!deletingSignatureId) return;
 
-//       toast.success(t('pages.settings.signatures.signatureSaved'));
-//     } catch (error) {
-//       console.error('Failed to save signature settings:', error);
-//       toast.error(t('common.settings.failedToSave'));
-//       // Revert the optimistic update
-//       await mutate();
-//     } finally {
-//       setIsSaving(false);
-//     }
-//   }
+    try {
+      await deleteSignature({ id: deletingSignatureId });
+      toast.success(t('pages.settings.signatures.delete.success'));
+      await refetch();
+      setIsDeleteConfirmOpen(false);
+      setDeletingSignatureId(null);
+    } catch (error) {
+      toast.error(t('pages.settings.signatures.delete.error'));
+      console.error('Failed to delete signature:', error);
+    }
+  };
 
-//   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-//     const newValue = e.target.value;
-//     // Try to clean any malformed HTML
-//     const cleanedValue = decodeHtmlEntities(newValue);
-//     setSignatureHtml(cleanedValue);
+  const handleSetDefault = async (signature: Signature) => {
+    try {
+      if (hasZeroSignature) {
+        await saveUserSettings({
+          ...settings?.settings,
+          zeroSignature: false,
+        });
+      }
 
-//     // Update the form state
-//     form.setValue('signature.content', cleanedValue);
-//   };
+      await updateSignature({
+        id: signature.id,
+        name: signature.name,
+        content: signature.content,
+        isDefault: true,
+      });
+      toast.success(t('pages.settings.signatures.messages.defaultUpdated'));
+      await refetch();
+    } catch (error) {
+      toast.error(t('pages.settings.signatures.messages.failedToSetDefault'));
+      console.error('Failed to set default signature:', error);
+    }
+  };
 
-//   const handleEditorChange = (html: string) => {
-//     // Process the HTML coming from the rich editor
-//     setSignatureHtml(html);
+  const handleToggleZeroSignature = async (enabled: boolean) => {
+    try {
+      if (enabled && defaultSignature) {
+        await updateSignature({
+          id: defaultSignature.id,
+          name: defaultSignature.name,
+          content: defaultSignature.content,
+          isDefault: false,
+        });
+        await refetch();
+      }
 
-//     // Update the form state
-//     form.setValue('signature.content', html);
-//   };
+      await saveUserSettings({
+        ...settings?.settings,
+        zeroSignature: enabled,
+      });
+      toast.success(enabled ? t('pages.settings.signatures.zeroSignature.enabled') : t('pages.settings.signatures.zeroSignature.disabled'));
+    } catch (error) {
+      toast.error(t('pages.settings.signatures.zeroSignature.failedToUpdate'));
+      console.error('Failed to update Zero signature setting:', error);
+    }
+  };
 
-//   const watchSignatureEnabled = form.watch('signature.enabled');
-//   const watchEditorType = form.watch('signature.editorType');
+  const openImportConfirm = () => {
+    if (!activeConnection?.id) {
+      toast.error(t('pages.settings.signatures.import.noConnectionError'));
+      return;
+    }
 
-//   // Function to decode HTML entities
-//   const decodeHtmlEntities = (html: string): string => {
-//     const textarea = document.createElement('textarea');
-//     textarea.innerHTML = html;
-//     return textarea.value;
-//   };
+    if (activeConnection.providerId !== 'google') {
+      toast.error(t('pages.settings.signatures.import.gmailOnlyError'));
+      return;
+    }
 
-//   // Handle switching between editor types
-//   useEffect(() => {
-//     // When switching editor modes
-//     if (watchEditorType === 'rich') {
-//       // Clean any double-escaped HTML before loading into rich editor
-//       const cleanHtml = decodeHtmlEntities(signatureHtml);
-//       setSignatureHtml(cleanHtml);
-//       setEditorContent(tryParseHtmlToContent(cleanHtml));
-//       setAutoFocus(false);
-//     } else {
-//       // When switching to plain mode, make sure we're seeing actual HTML, not escaped entities
-//       const cleanHtml = decodeHtmlEntities(signatureHtml);
-//       setSignatureHtml(cleanHtml);
-//       setAutoFocus(true);
-//     }
-//   }, [watchEditorType]);
+    setIsImportConfirmOpen(true);
+  };
 
-//   return (
-//     <div className="grid gap-6">
-//       <SettingsCard
-//         title={t('pages.settings.signatures.title')}
-//         description={t('pages.settings.signatures.description')}
-//         footer={
-//           <Button type="submit" form="signatures-form" disabled={isSaving}>
-//             {isSaving ? t('common.actions.saving') : t('common.actions.saveChanges')}
-//           </Button>
-//         }
-//       >
-//         <Form {...form}>
-//           <form id="signatures-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-//             {/* Enable Signature Switch */}
-//             <FormField
-//               control={form.control}
-//               name="signature.enabled"
-//               render={({ field }) => (
-//                 <FormItem className="bg-popover flex flex-row items-center justify-between rounded-lg border p-4">
-//                   <div className="space-y-0.5">
-//                     <FormLabel className="text-base">
-//                       {t('pages.settings.signatures.enableSignature')}
-//                     </FormLabel>
-//                     <FormDescription>
-//                       {t('pages.settings.signatures.enableSignatureDescription')}
-//                     </FormDescription>
-//                   </div>
-//                   <FormControl>
-//                     <Switch checked={field.value} onCheckedChange={field.onChange} />
-//                   </FormControl>
-//                 </FormItem>
-//               )}
-//             />
+  const handleImportFromGmail = async () => {
+    if (!activeConnection?.id) return;
 
-//             {watchSignatureEnabled && (
-//               <>
-//                 {/* Include by Default Switch */}
-//                 <FormField
-//                   control={form.control}
-//                   name="signature.includeByDefault"
-//                   render={({ field }) => (
-//                     <FormItem className="bg-popover flex flex-row items-center justify-between rounded-lg border p-4">
-//                       <div className="space-y-0.5">
-//                         <FormLabel className="text-base">
-//                           {t('pages.settings.signatures.includeByDefault')}
-//                         </FormLabel>
-//                         <FormDescription>
-//                           {t('pages.settings.signatures.includeByDefaultDescription')}
-//                         </FormDescription>
-//                       </div>
-//                       <FormControl>
-//                         <Switch checked={field.value} onCheckedChange={field.onChange} />
-//                       </FormControl>
-//                     </FormItem>
-//                   )}
-//                 />
+    try {
+      const result = await importFromGmail({ connectionId: activeConnection.id });
+      
+      if (result.imported > 0 && result.skipped > 0) {
+        toast.success(result.message, {
+          description: `${result.imported} new signatures added, ${result.skipped} duplicates skipped`
+        });
+      } else if (result.imported > 0) {
+        toast.success(result.message);
+      } else if (result.skipped > 0) {
+        toast.info(result.message, {
+          description: 'These signatures already exist in your account'
+        });
+      } else {
+        toast.info(result.message);
+      }
+      
+      await refetch();
+      setIsImportConfirmOpen(false);
+    } catch (error: any) {
+      if (error?.message?.includes('Connection tokens are missing')) {
+        toast.error(t('pages.settings.signatures.import.expiredTokenError'));
+      } else if (error?.message?.includes('only works with Gmail')) {
+        toast.error(t('pages.settings.signatures.import.gmailOnlyError'));
+      } else {
+        toast.error(t('pages.settings.signatures.import.genericError'));
+      }
+      console.error('Failed to import signatures from Gmail:', error);
+      setIsImportConfirmOpen(false);
+    }
+  };
 
-//                 {/* Editor Type Selector - Improved UI */}
-//                 <div className="space-y-2">
-//                   <FormLabel>{t('pages.settings.signatures.editorType')}</FormLabel>
-//                   <div className="flex space-x-2">
-//                     <Button
-//                       type="button"
-//                       variant={watchEditorType === 'plain' ? 'default' : 'outline'}
-//                       onClick={() => form.setValue('signature.editorType', 'plain')}
-//                       className="flex-1"
-//                     >
-//                       <code className="mr-2">&lt;/&gt;</code>
-//                       {t('pages.settings.signatures.plainText')}
-//                     </Button>
-//                     <Button
-//                       type="button"
-//                       variant={watchEditorType === 'rich' ? 'default' : 'outline'}
-//                       onClick={() => form.setValue('signature.editorType', 'rich')}
-//                       className="flex-1"
-//                     >
-//                       <span className="mr-2">
-//                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block">
-//                           <path d="M12 10v4" />
-//                           <line x1="9" y1="6" x2="15" y2="6" />
-//                           <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-2" />
-//                           <path d="M12 3v7" />
-//                           <path d="M10 16h4" />
-//                         </svg>
-//                       </span>
-//                       {t('pages.settings.signatures.richText')}
-//                     </Button>
-//                   </div>
-//                   <FormDescription>
-//                     {t('pages.settings.signatures.editorTypeDescription')}
-//                   </FormDescription>
-//                 </div>
+  const defaultSignature = signaturesArray.find(sig => sig.isDefault);
+  const hasZeroSignature = settings?.settings?.zeroSignature || false;
 
-//                 {/* Signature Editor - either plain text or rich editor */}
-//                 <div className="space-y-2">
-//                   <label className="text-sm font-medium">{t('pages.settings.signatures.signatureContent')}</label>
+  return (
+    <div className="grid gap-6">
+      <SettingsCard
+        title={t('pages.settings.signatures.zeroSignature.title')}
+        description={t('pages.settings.signatures.zeroSignature.description')}
+      >
+        <div className="flex max-w-xl flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+          <div className="space-y-0.5">
+            <div className="font-medium">{t('pages.settings.signatures.zeroSignature.label')}</div>
+            <div className="text-sm text-muted-foreground">
+              {t('pages.settings.signatures.zeroSignature.labelDescription')}
+            </div>
+          </div>
+                     <Switch 
+             checked={hasZeroSignature} 
+             onCheckedChange={handleToggleZeroSignature}
+           />
+         </div>
+      </SettingsCard>
 
-//                   {watchEditorType === 'plain' ? (
-//                     <div className="mt-1">
-//                       <Textarea
-//                         autoFocus={autoFocus}
-//                         className="font-mono text-xs h-[200px]"
-//                         value={signatureHtml}
-//                         onChange={handleTextareaChange}
-//                         placeholder={t('pages.settings.signatures.signatureContentPlaceholder')}
-//                       />
-//                       <p className="text-muted-foreground text-sm mt-2">
-//                         {t('pages.settings.signatures.signatureContentHelp') || "You can use HTML to add formatting, links, and images to your signature."}
-//                       </p>
-//                       <div className="text-xs bg-muted/50 p-2 mt-1 rounded border">
-//                         <strong>Note:</strong> HTML tags are supported for formatting.
-//                         For security reasons, script tags are not allowed. Common useful tags:
-//                         <code className="mx-1 px-1 bg-muted rounded">&lt;a&gt;</code> for links,
-//                         <code className="mx-1 px-1 bg-muted rounded">&lt;br&gt;</code> for line breaks,
-//                         <code className="mx-1 px-1 bg-muted rounded">&lt;b&gt;</code> for bold text.
-//                       </div>
-//                     </div>
-//                   ) : (
-//                     <div className="mt-1 border rounded-md p-2">
-//                       <Editor
-//                         initialValue={editorContent}
-//                         onChange={handleEditorChange}
-//                         placeholder={t('pages.settings.signatures.richTextPlaceholder') || "Format your signature with the rich text editor..."}
-//                           className="w-full"
-//                       />
-//                       <p className="text-muted-foreground text-sm mt-2">
-//                         {t('pages.settings.signatures.richTextDescription')}
-//                       </p>
-//                     </div>
-//                   )}
-//                 </div>
+              <SettingsCard
+          title={t('pages.settings.signatures.customSignatures.title')}
+          description={t('pages.settings.signatures.customSignatures.description')}
+        footer={
+          <div className="flex gap-2">
+            {activeConnection?.providerId === 'google' && (
+              <Button 
+                variant="outline" 
+                onClick={openImportConfirm}
+                disabled={isImporting || isLoading}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {isImporting ? t('pages.settings.signatures.customSignatures.importing') : t('pages.settings.signatures.customSignatures.importButton')}
+              </Button>
+            )}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={openCreateDialog}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('pages.settings.signatures.customSignatures.createButton')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingSignature ? t('pages.settings.signatures.form.editTitle') : t('pages.settings.signatures.form.createTitle')}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingSignature 
+                      ? t('pages.settings.signatures.form.editDescription')
+                      : t('pages.settings.signatures.form.createDescription')
+                    }
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('pages.settings.signatures.form.nameLabel')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('pages.settings.signatures.form.namePlaceholder')} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('pages.settings.signatures.form.contentLabel')}</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder={t('pages.settings.signatures.signatureContentPlaceholder')}
+                              className="min-h-[120px]"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="isDefault"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel>{t('pages.settings.signatures.form.setAsDefaultLabel')}</FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              {t('pages.settings.signatures.form.setAsDefaultDescription')}
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsDialogOpen(false)}
+                      >
+                        {t('pages.settings.signatures.form.cancel')}
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={isCreating || isUpdating}
+                      >
+                        {isCreating || isUpdating 
+                          ? (editingSignature ? t('pages.settings.signatures.form.updating') : t('pages.settings.signatures.form.creating')) 
+                          : (editingSignature ? t('pages.settings.signatures.form.update') : t('pages.settings.signatures.form.create'))
+                        }
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {error && (
+            <div className="text-center py-8 text-red-500">
+              <p>{t('pages.settings.signatures.messages.loadingError')}: {error.message}</p>
+            </div>
+          )}
+          {isLoading && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>{t('pages.settings.signatures.messages.loading')}</p>
+            </div>
+          )}
+          {!isLoading && !error && signaturesArray.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>{t('pages.settings.signatures.customSignatures.noSignatures')}</p>
+              <p className="text-sm">{t('pages.settings.signatures.customSignatures.noSignaturesDescription')}</p>
+            </div>
+          ) : (
+            !isLoading && !error && signaturesArray.map((signature) => (
+              <div
+                key={signature.id}
+                className="flex items-start justify-between p-4 border rounded-lg"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-medium">{signature.name}</h3>
+                    {signature.isDefault && (
+                      <Badge variant="default" className="text-xs">
+                        {t('pages.settings.signatures.customSignatures.defaultBadge')}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {signature.content}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Button
+                      variant={signature.isDefault ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleSetDefault(signature)}
+                      disabled={signature.isDefault}
+                    >
+                      {signature.isDefault ? t('pages.settings.signatures.customSignatures.defaultButton') : t('pages.settings.signatures.customSignatures.setAsDefaultButton')}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 ml-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEditDialog(signature)}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openDeleteConfirm(signature.id)}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </SettingsCard>
 
-//                 {/* Signature Preview */}
-//                 {signatureHtml && (
-//                   <div className="space-y-2">
-//                     <h3 className="text-base font-medium">
-//                       {t('pages.settings.signatures.signaturePreview')}
-//                     </h3>
-//                     <div className="border p-4 rounded-md">
-//                       <p className="text-muted-foreground text-sm mb-2">
-//                         {t('pages.settings.signatures.signaturePreviewDescription')}
-//                       </p>
-//                       <div className="border-t pt-2">
-//                         <SignaturePreview
-//                           html={signatureHtml}
-//                           className="w-full min-h-[150px]"
-//                         />
-//                       </div>
-//                     </div>
-//                   </div>
-//                 )}
-//               </>
-//             )}
-//           </form>
-//         </Form>
-//       </SettingsCard>
-//     </div>
-//   );
-// }
+      <Dialog open={isImportConfirmOpen} onOpenChange={setIsImportConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5" />
+              {t('pages.settings.signatures.import.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('pages.settings.signatures.import.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportConfirmOpen(false)}
+              disabled={isImporting}
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              onClick={handleImportFromGmail}
+              disabled={isImporting}
+            >
+              {isImporting ? t('pages.settings.signatures.customSignatures.importing') : t('pages.settings.signatures.import.confirmButton')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              {t('pages.settings.signatures.delete.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('pages.settings.signatures.delete.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              disabled={isDeleting}
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? t('pages.settings.signatures.delete.deleting') : t('pages.settings.signatures.delete.confirmButton')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+} 

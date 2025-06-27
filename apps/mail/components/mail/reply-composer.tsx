@@ -4,7 +4,7 @@ import { useEmailAliases } from '@/hooks/use-email-aliases';
 import { EmailComposer } from '../create/email-composer';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 import { useTRPC } from '@/providers/query-provider';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
 import { useThread } from '@/hooks/use-threads';
 import { useSession } from '@/lib/auth-client';
@@ -35,6 +35,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
   const { mutateAsync: sendEmail } = useMutation(trpc.mail.send.mutationOptions());
   const { data: activeConnection } = useActiveConnection();
   const { data: settings, isLoading: settingsLoading } = useSettings();
+  const { data: signatures } = useQuery(trpc.signatures.list.queryOptions());
   const { data: session } = useSession();
 
   // Find the specific message to reply to
@@ -162,21 +163,28 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           }))
         : undefined;
 
-      const zeroSignature = settings?.settings.zeroSignature
-        ? '<p style="color: #666; font-size: 12px;">Sent via <a href="https://0.email/" style="color: #0066cc; text-decoration: none;">Zero</a></p>'
-        : '';
+      const signaturesArray = Array.isArray(signatures) ? signatures : [];
+      const defaultSignature = signaturesArray.find(sig => sig.isDefault);
+      const hasZeroSignature = settings?.settings?.zeroSignature;
+      
+      let signature = '';
+      if (defaultSignature) {
+        signature = `<div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px;"><div style="white-space: pre-wrap;">${defaultSignature.content}</div></div>`;
+      } else if (hasZeroSignature) {
+        signature = '<p style="color: #666; font-size: 12px;">Sent via <a href="https://0.email/" style="color: #0066cc; text-decoration: none;">Zero</a></p>';
+      }
 
       const emailBody =
         mode === 'forward'
           ? constructForwardBody(
-              data.message + zeroSignature,
+              data.message + signature,
               new Date(replyToMessage.receivedOn || '').toLocaleString(),
               { ...replyToMessage.sender, subject: replyToMessage.subject },
               toRecipients,
               replyToMessage.decodedBody,
             )
           : constructReplyBody(
-              data.message + zeroSignature,
+              data.message + signature,
               new Date(replyToMessage.receivedOn || '').toLocaleString(),
               replyToMessage.sender,
               toRecipients,
@@ -257,11 +265,11 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           await setDraftId(null);
           await setActiveReplyId(null);
         }}
-        initialMessage={draft?.content ?? latestDraft?.decodedBody}
-        initialTo={ensureEmailArray(draft?.to)}
-        initialCc={ensureEmailArray(draft?.cc)}
-        initialBcc={ensureEmailArray(draft?.bcc)}
-        initialSubject={draft?.subject}
+        initialMessage={(draft as any)?.content ?? latestDraft?.decodedBody}
+        initialTo={ensureEmailArray((draft as any)?.to)}
+        initialCc={ensureEmailArray((draft as any)?.cc)}
+        initialBcc={ensureEmailArray((draft as any)?.bcc)}
+        initialSubject={(draft as any)?.subject}
         autofocus={false}
         settingsLoading={settingsLoading}
         replyingTo={replyToMessage?.sender.email}

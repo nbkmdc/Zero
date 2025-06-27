@@ -5,7 +5,7 @@ import { cleanEmailAddresses } from '@/lib/email-utils';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 import { useTRPC } from '@/providers/query-provider';
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
 import { EmailComposer } from './email-composer';
 import { useSession } from '@/lib/auth-client';
@@ -71,6 +71,7 @@ export function CreateEmail({
   const [, setActiveReplyId] = useQueryState('activeReplyId');
   const { data: activeConnection } = useActiveConnection();
   const { data: settings, isLoading: settingsLoading } = useSettings();
+  const { data: signatures } = useQuery(trpc.signatures.list.queryOptions());
   // If there was an error loading the draft, set the failed state
   useEffect(() => {
     if (draftError) {
@@ -96,16 +97,23 @@ export function CreateEmail({
   }) => {
     const fromEmail = data.fromEmail || aliases?.[0]?.email || userEmail;
 
-    const zeroSignature = settings?.settings.zeroSignature
-      ? '<p style="color: #666; font-size: 12px;">Sent via <a href="https://0.email/" style="color: #0066cc; text-decoration: none;">Zero</a></p>'
-      : '';
+    const signaturesArray = Array.isArray(signatures) ? signatures : [];
+    const defaultSignature = signaturesArray.find(sig => sig.isDefault);
+    const hasZeroSignature = settings?.settings?.zeroSignature;
+    
+    let signature = '';
+    if (defaultSignature) {
+      signature = `<div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px;"><div style="white-space: pre-wrap;">${defaultSignature.content}</div></div>`;
+    } else if (hasZeroSignature) {
+      signature = '<p style="color: #666; font-size: 12px;">Sent via <a href="https://0.email/" style="color: #0066cc; text-decoration: none;">Zero</a></p>';
+    }
 
     await sendEmail({
       to: data.to.map((email) => ({ email, name: email.split('@')[0] || email })),
       cc: data.cc?.map((email) => ({ email, name: email.split('@')[0] || email })),
       bcc: data.bcc?.map((email) => ({ email, name: email.split('@')[0] || email })),
       subject: data.subject,
-      message: data.message + zeroSignature,
+      message: data.message + signature,
       attachments: await serializeFiles(data.attachments),
       fromEmail: userName.trim() ? `${userName.replace(/[<>]/g, '')} <${fromEmail}>` : fromEmail,
       draftId: draftId ?? undefined,

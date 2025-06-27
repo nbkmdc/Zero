@@ -9,6 +9,7 @@ import {
   connection,
   note,
   session,
+  signature,
   user,
   userHotkeys,
   userSettings,
@@ -170,6 +171,26 @@ export class RpcDO extends RpcTarget {
     updatingInfo: Partial<typeof connection.$inferInsert>,
   ) {
     return await this.mainDo.updateConnection(connectionId, updatingInfo);
+  }
+
+  async findManySignatures() {
+    return await this.mainDo.findManySignatures(this.userId);
+  }
+
+  async createSignature(payload: Omit<typeof signature.$inferInsert, 'userId' | 'id' | 'createdAt' | 'updatedAt'>) {
+    return await this.mainDo.createSignature(this.userId, payload);
+  }
+
+  async updateSignature(signatureId: string, payload: Partial<typeof signature.$inferInsert>) {
+    return await this.mainDo.updateSignature(this.userId, signatureId, payload);
+  }
+
+  async deleteSignature(signatureId: string) {
+    return await this.mainDo.deleteSignature(this.userId, signatureId);
+  }
+
+  async findSignatureById(signatureId: string) {
+    return await this.mainDo.findSignatureById(this.userId, signatureId);
   }
 }
 
@@ -479,6 +500,73 @@ class ZeroDB extends DurableObject<Env> {
       .update(connection)
       .set(updatingInfo)
       .where(eq(connection.id, connectionId));
+  }
+
+  async findManySignatures(userId: string): Promise<(typeof signature.$inferSelect)[]> {
+    return await this.db.query.signature.findMany({
+      where: eq(signature.userId, userId),
+      orderBy: [desc(signature.isDefault), asc(signature.name)],
+    });
+  }
+
+  async createSignature(userId: string, payload: Omit<typeof signature.$inferInsert, 'userId' | 'id' | 'createdAt' | 'updatedAt'>) {
+    return await this.db.transaction(async (tx) => {
+      if (payload.isDefault) {
+        await tx
+          .update(signature)
+          .set({ isDefault: false })
+          .where(and(eq(signature.userId, userId), eq(signature.isDefault, true)));
+      }
+
+      const [newSignature] = await tx.insert(signature).values({
+        id: crypto.randomUUID(),
+        userId,
+        name: payload.name,
+        content: payload.content,
+        isDefault: payload.isDefault || false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+
+      return newSignature;
+    });
+  }
+
+  async updateSignature(userId: string, signatureId: string, payload: Partial<typeof signature.$inferInsert>): Promise<typeof signature.$inferSelect | undefined> {
+    return await this.db.transaction(async (tx) => {
+      if (payload.isDefault) {
+        await tx
+          .update(signature)
+          .set({ isDefault: false })
+          .where(and(eq(signature.userId, userId), eq(signature.isDefault, true)));
+      }
+
+      const [updated] = await tx
+        .update(signature)
+        .set({
+          ...payload,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(signature.id, signatureId), eq(signature.userId, userId)))
+        .returning();
+
+      return updated;
+    });
+  }
+
+  async deleteSignature(userId: string, signatureId: string): Promise<boolean> {
+    const result = await this.db
+      .delete(signature)
+      .where(and(eq(signature.id, signatureId), eq(signature.userId, userId)))
+      .returning({ id: signature.id });
+    
+    return result.length > 0;
+  }
+
+  async findSignatureById(userId: string, signatureId: string): Promise<typeof signature.$inferSelect | undefined> {
+    return await this.db.query.signature.findFirst({
+      where: and(eq(signature.id, signatureId), eq(signature.userId, userId)),
+    });
   }
 }
 

@@ -91,6 +91,13 @@ export interface MailManager {
   ): Promise<void>;
   deleteLabel(id: string): Promise<void>;
   getEmailAliases(): Promise<{ email: string; name?: string; primary?: boolean }[]>;
+  getGmailSignatures(): Promise<{ 
+    email: string; 
+    displayName: string; 
+    signature: string; 
+    isPrimary: boolean; 
+    isDefault: boolean; 
+  }[]>;
   revokeToken(token: string): Promise<boolean>;
   deleteAllSpam(): Promise<DeleteAllSpamResponse>;
 }

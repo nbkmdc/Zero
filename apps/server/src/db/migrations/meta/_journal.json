@@ -232,6 +232,20 @@
       "when": 1750794533968,
       "tag": "0032_smiling_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1750881596877,
+      "tag": "0033_bright_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1750884014149,
+      "tag": "0034_material_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

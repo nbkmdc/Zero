@@ -98,6 +98,7 @@ export const connection = createTable(
     refreshToken: text('refresh_token'),
     scope: text('scope').notNull(),
     providerId: text('provider_id').$type<'google' | 'microsoft'>().notNull(),
+    defaultSignatureId: text('default_signature_id'),
     expiresAt: timestamp('expires_at').notNull(),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
@@ -140,6 +141,18 @@ export const userSettings = createTable('user_settings', {
   settings: jsonb('settings').notNull().default(defaultUserSettings),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
+});
+
+export const signature = createTable('signature', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  content: text('content').notNull(),
+  isDefault: boolean('is_default').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export const writingStyleMatrix = createTable(
