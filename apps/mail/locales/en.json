@@ -462,9 +462,9 @@
         "signatureContentHelp": "You can use HTML to add formatting, links, and images to your signature.",
         "zeroSignature": {
           "title": "Zero Signature",
-          "description": "Add 'Sent via Zero' to your emails. Enabling this will disable any default custom signature.",
+          "description": "Add a default Zero signature to your emails.",
           "label": "Sent via Zero",
-          "labelDescription": "Adds 'Sent via Zero' to the end of your emails",
+          "labelDescription": "Adds 'Sent via Zero' to the end of your emails.",
           "enabled": "Zero signature enabled",
           "disabled": "Zero signature disabled",
           "failedToUpdate": "Failed to update Zero signature setting"
