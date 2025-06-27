@@ -265,11 +265,11 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           await setDraftId(null);
           await setActiveReplyId(null);
         }}
-        initialMessage={(draft as any)?.content ?? latestDraft?.decodedBody}
-        initialTo={ensureEmailArray((draft as any)?.to)}
-        initialCc={ensureEmailArray((draft as any)?.cc)}
-        initialBcc={ensureEmailArray((draft as any)?.bcc)}
-        initialSubject={(draft as any)?.subject}
+        initialMessage={draft?.content ?? latestDraft?.decodedBody}
+        initialTo={ensureEmailArray(draft?.to)}
+        initialCc={ensureEmailArray(draft?.cc)}
+        initialBcc={ensureEmailArray(draft?.bcc)}
+        initialSubject={draft?.subject}
         autofocus={false}
         settingsLoading={settingsLoading}
         replyingTo={replyToMessage?.sender.email}
