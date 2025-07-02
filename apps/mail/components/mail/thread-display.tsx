@@ -804,13 +804,27 @@ export function ThreadDisplay() {
           <>
             
             <div className={cn('flex min-h-0 flex-1 flex-col', isMobile && 'h-full')}>
+              {/* Sticky Subject Header */}
+              {emailData?.latest && (
+                <div className="sticky top-0 z-50 bg-transparent py-2">
+                  <span className="inline-flex items-center gap-2 font-medium text-black dark:text-[#d4d4d4]">
+                    <span>
+                      <span className="text-2xl font-semibold">{emailData.latest.subject} </span>
+                      <span className="text-muted-foreground dark:text-[#8C8C8C]">
+                        {emailData.totalReplies && emailData.totalReplies > 1 && `[${emailData.totalReplies}]`}
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              )}
+              
               <ScrollArea
                 className={cn('flex-1', isMobile ? 'h-[calc(100%-1px)]' : 'h-full')}
                 type="auto"
               >
                 <div
               className={cn(
-                'flex flex-shrink-0 items-center px-1 pb-1 md:px-3 md:pb-[11px] bg-panelLight dark:bg-panelDark rounded-t-xl',
+                'flex flex-shrink-0 items-center px-1 pb-1 md:px-3 md:pb-[11px] bg-transparent rounded-t-lg',
                 isMobile && 'sticky top-0 z-10',
               )}
             >
@@ -1058,7 +1072,7 @@ export function ThreadDisplay() {
 
               {/* Sticky Reply Compose at Bottom - Only for last message */}
               {mode && activeReplyId && activeReplyId === emailData.messages[emailData.messages.length - 1]?.id && (
-                <div className="sticky bottom-0 z-10 rounded-xl  border-border bg-panelLight dark:bg-panelDark px-4 py-2" id={`reply-composer-${activeReplyId}`}>
+                <div className="sticky bottom-0 z-10 rounded-b-lg  border-border bg-panelLight dark:bg-panelDark px-4 py-2" id={`reply-composer-${activeReplyId}`}>
                   <ReplyCompose messageId={activeReplyId} />
                 </div>
               )}

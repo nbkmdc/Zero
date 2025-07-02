@@ -40,12 +40,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Settings, HelpCircle, LogOut, MoonIcon, BanknoteIcon, BadgeCheck } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { Settings, HelpCircle, LogOut, MoonIcon, BanknoteIcon, BadgeCheck } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useCategorySettings, useDefaultCategoryId } from '@/hooks/use-categories';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useRevalidator, useLocation } from 'react-router';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useActiveConnection, useConnections } from '@/hooks/use-connections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCommandPalette } from '../context/command-palette-context';
@@ -61,11 +62,12 @@ import { handleUnsubscribe } from '@/lib/email-utils.client';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { useThread, useThreads } from '@/hooks/use-threads';
 import { useSearchValue } from '@/hooks/use-search-value';
-import { AddConnectionDialog } from '../connection/add';
 import * as CustomIcons from '@/components/icons/icons';
+import { AddConnectionDialog } from '../connection/add';
 import { isMac } from '@/lib/hotkeys/use-hotkey-utils';
 import { MailList } from '@/components/mail/mail-list';
 import { useHotkeysContext } from 'react-hotkeys-hook';
+import SelectAllCheckbox from './select-all-checkbox';
 import { useMail } from '@/components/mail/use-mail';
 import { LabelDialog } from '../labels/label-dialog';
 import { SidebarToggle } from '../ui/sidebar-toggle';
@@ -96,13 +98,11 @@ import { signOut } from '@/lib/auth-client';
 import { Separator } from '../ui/separator';
 import { useTranslations } from 'use-intl';
 import type { IConnection } from '@/types';
-import { SearchBar } from './search-bar';
 import { useTheme } from 'next-themes';
 import { FOLDERS } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import { useAtom } from 'jotai';
 import { toast } from 'sonner';
-import SelectAllCheckbox from './select-all-checkbox';
 
 interface ITag {
   id: string;
@@ -450,7 +450,8 @@ export function MailLayout() {
     useOptimisticActions();
   const trpc = useTRPC();
   const [mode, setMode] = useQueryState('mode');
-
+  const [focusedIndex, setFocusedIndex] = useQueryState('focusedIndex');
+ 
   const [threadId, setThreadId] = useQueryState('threadId');
   const [, setActiveReplyId] = useQueryState('activeReplyId');
   const { data: emailData } = useThread(threadId ?? null);
@@ -482,7 +483,7 @@ export function MailLayout() {
           const nextThread = items[currentIndex + 1];
           if (nextThread) {
             setThreadId(nextThread.id);
-            setFocusedIndex(currentIndex + 1);
+            setFocusedIndex(String(currentIndex + 1));
             setActiveReplyId(null);
           }
         } else {
@@ -583,7 +584,7 @@ export function MailLayout() {
         <ResizablePanelGroup
           direction="horizontal"
           className={cn(
-            'rounded-inherit bg-panelLight overflow-hidden dark:bg-[#141414]',
+            'rounded-inherit bg-lightBackground dark:bg-darkBackground overflow-hidden',
             threadId && 'bg-sidebar dark:bg-sidebar',
           )}
         >
@@ -593,7 +594,7 @@ export function MailLayout() {
               minSize={35}
               maxSize={35}
               className={cn(
-                `bg-panelLight w-fit md:flex md:rounded-2xl lg:h-[calc(100dvh-8px)] lg:shadow-sm dark:bg-[#141414]`,
+                `bg-lightBackground dark:bg-darkBackground w-fit md:flex md:rounded-2xl lg:h-[calc(100dvh-8px)] lg:shadow-sm`,
                 isDesktop && threadId && 'hidden lg:block',
                 threadId && 'bg-sidebar dark:bgm-1 -sidebar mr-0.5',
               )}
@@ -605,7 +606,7 @@ export function MailLayout() {
                   className={cn(
                     'sticky top-0 z-[3] p-2 pl-3.5 pr-3 transition-colors',
                     'flex flex-col gap-2 md:min-h-16 md:flex-row lg:min-h-14 lg:items-center lg:justify-between lg:gap-1.5',
-                    'from-panelLight/95 to-panelLight/80 bg-gradient-to-b backdrop-blur-sm dark:from-[#141414]/95 dark:to-[#141414]/80',
+                    '',
                   )}
                 >
                   {mail.bulkSelected.length > 0 ? (
@@ -623,7 +624,7 @@ export function MailLayout() {
                           <UserAccountSelect />
 
                           {/* Quick Actions Group */}
-                          <div className="bg-muted/50 flex items-center gap-1.5 rounded-lg p-1 dark:bg-[#1A1A1A]">
+                          <div className="bg-muted/50 dark:bg-darkBackground flex items-center gap-1.5 rounded-lg p-1">
                             <AutoLabelingSettings />
 
                             {/* Search Button */}
@@ -632,7 +633,7 @@ export function MailLayout() {
                               className={cn(
                                 'text-muted-foreground hover:bg-muted h-6 w-6 border-none bg-transparent p-0 dark:hover:bg-[#2C2C2C]',
                               )}
-                              onClick={() => setOpen(!open)}
+                              onClick={() => setIsCommandPaletteOpen('true')}
                             >
                               <Search className="fill-muted-foreground size-3.5" />
                             </Button>
@@ -642,10 +643,10 @@ export function MailLayout() {
                               onClick={() => {
                                 refetchThreads();
                               }}
-                              variant="ghost"
-                              className="hover:bg-muted h-6 w-6 bg-transparent px-0 dark:hover:bg-[#2C2C2C]"
+                              variant="outline"
+                              className="h-7 w-7 rounded-md px-0"
                             >
-                              <RefreshCcw className="text-muted-foreground h-3.5 w-3.5 cursor-pointer" />
+                              <RefreshCcw className="text-black dark:text-white h-3.5 w-3.5 cursor-pointer" />
                             </Button>
                           </div>
                         </div>
@@ -680,23 +681,24 @@ export function MailLayout() {
                         <div className="flex items-center gap-2">
                           <UserAccountSelect />
                           <NavigationDropdown />
-                          {folder === 'inbox' && (
-                            <LabelSelect isMultiSelectMode={mail.bulkSelected.length > 0} />
-                          )}
+
                           {folder === 'inbox' && (
                             <CategorySelect isMultiSelectMode={mail.bulkSelected.length > 0} />
                           )}
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <AutoLabelingSettings />
+                          {folder === 'inbox' && (
+                            <LabelSelect isMultiSelectMode={mail.bulkSelected.length > 0} />
+                          )}
+                          {/* <AutoLabelingSettings /> */}
                           <div className="w-56">
                             <Button
-                              variant="outline"
+                              variant="secondary"
                               className={cn(
-                                'text-muted-foreground bg-muted relative flex h-7 w-full select-none items-center justify-start overflow-hidden rounded-lg border-none bg-white pl-2 text-left text-sm font-normal shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-[#0F0F0F] [&_svg]:size-3.5',
+                                'text-muted-foreground relative flex h-7 w-full select-none items-center justify-start overflow-hidden rounded-md border-none pl-2 text-left text-sm font-normal shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&_svg]:size-3.5',
                               )}
-                              onClick={() => setOpen(!open)}
+                              onClick={() => setIsCommandPaletteOpen('true')}
                             >
                               <Search className="size-3.5 fill-[#71717A] dark:fill-[#6F6F6F]" />
 
@@ -725,16 +727,16 @@ export function MailLayout() {
                                     Clear
                                   </Button>
                                 )}
-                                <kbd className="bg-muted text-md pointer-events-none hidden h-5 select-none flex-row items-center gap-1 rounded-md border-none px-1 font-medium !leading-[0] opacity-100 sm:flex dark:bg-[#262626] dark:text-[#929292]">
+                                <kbd className="bg-muted text-md pointer-events-none hidden h-5 select-none flex-row items-center gap-1 rounded-md px-1 font-medium !leading-[0] opacity-100 sm:flex dark:bg-darkBackground dark:text-lightForeground border-2 ">
                                   <span
                                     className={cn(
-                                      'h-min !leading-[0.2]',
+                                      'h-min !leading-[0.2] text-[#71717A] dark:text-[#6F6F6F]',
                                       isMac ? 'mt-[1px] text-lg' : 'text-sm',
                                     )}
                                   >
                                     {isMac ? '⌘' : 'Ctrl'}{' '}
                                   </span>
-                                  <span className="h-min text-sm !leading-[0.2]"> K</span>
+                                  <span className="h-min text-sm !leading-[0.2] text-[#71717A] dark:text-[#6F6F6F]"> K</span>
                                 </kbd>
                               </span>
                             </Button>
@@ -744,10 +746,10 @@ export function MailLayout() {
                             onClick={() => {
                               refetchThreads();
                             }}
-                            variant="ghost"
-                            className="bg-muted h-7 w-7 px-0 dark:bg-[#2C2C2C]"
+                            variant="secondary"
+                            className="h-7 w-7 rounded-md"
                           >
-                            <RefreshCcw className="text-muted-foreground h-4 w-4 cursor-pointer" />
+                            <RefreshCcw className="text-black dark:text-white h-4 w-4 cursor-pointer" />
                           </Button>
                         </div>
                       </div>
@@ -783,7 +785,7 @@ export function MailLayout() {
               className={cn(
                 'mr-0.5 w-fit rounded-2xl shadow-sm lg:h-[calc(100dvh-7px)]',
                 !threadId && 'hidden lg:block',
-                threadId && 'bg-sidebar dark:bg-sidebar',
+                threadId && 'bg-lightBackground dark:bg-darkBackground',
               )}
               defaultSize={30}
               minSize={30}
@@ -798,12 +800,12 @@ export function MailLayout() {
                           setThreadId(null);
                           setActiveReplyId(null);
                         }}
-                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]"
+                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80"
                       >
-                        <X className="fill-iconLight dark:fill-iconDark h-3.5 w-3.5" />
+                        <X className="fill-black dark:fill-white h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                    <TooltipContent side="right">
                       Close thread
                     </TooltipContent>
                   </Tooltip>
@@ -820,17 +822,17 @@ export function MailLayout() {
                             const prevThread = items[currentIndex - 1];
                             if (prevThread) {
                               setThreadId(prevThread.id);
-                              setFocusedIndex(currentIndex - 1);
+                              setFocusedIndex(String(currentIndex - 1));
                               setActiveReplyId(null);
                             }
                           }
                         }}
-                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]"
+                         className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80"
                       >
-                        <ChevronUp className="text-iconLight dark:text-iconDark h-4 w-4" />
+                        <ChevronUp className="text-black dark:text-white h-4 w-4" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                    <TooltipContent side="right" >
                       Previous thread
                     </TooltipContent>
                   </Tooltip>
@@ -847,7 +849,7 @@ export function MailLayout() {
                             const nextThread = items[currentIndex + 1];
                             if (nextThread) {
                               setThreadId(nextThread.id);
-                              setFocusedIndex(currentIndex + 1);
+                              setFocusedIndex(String(currentIndex + 1));
                               setActiveReplyId(null);
                             }
                           } else {
@@ -856,12 +858,12 @@ export function MailLayout() {
                             setActiveReplyId(null);
                           }
                         }}
-                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]"
+                         className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80"
                       >
-                        <ChevronDown className="text-iconLight dark:text-iconDark h-4 w-4" />
+                        <ChevronDown className="text-black dark:text-white h-4 w-4" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                    <TooltipContent side="right">
                       Next thread
                     </TooltipContent>
                   </Tooltip>
@@ -876,19 +878,19 @@ export function MailLayout() {
                         <TooltipTrigger asChild>
                           <button
                             onClick={handleToggleStar}
-                            className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]"
+                             className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80"
                           >
                             <Star2
                               className={cn(
                                 'h-4 w-4',
                                 isStarred
                                   ? 'fill-yellow-400 stroke-yellow-400'
-                                  : 'fill-[#9D9D9D] stroke-[#9D9D9D] dark:stroke-[#9D9D9D]',
+                                  : 'fill-black dark:fill-white stroke-black dark:stroke-white',
                               )}
                             />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                        <TooltipContent side="right">
                           {isStarred
                             ? t('common.threadDisplay.unstar')
                             : t('common.threadDisplay.star')}
@@ -906,12 +908,12 @@ export function MailLayout() {
                               setMode('replyAll');
                               setActiveReplyId(emailData?.latest?.id ?? '');
                             }}
-                            className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]"
+                             className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80"
                           >
-                            <Reply className="fill-muted-foreground dark:fill-[#9B9B9B]" />
+                            <Reply className="fill-black dark:fill-white" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                        <TooltipContent side="right">
                           Reply to all
                         </TooltipContent>
                       </Tooltip>
@@ -923,12 +925,12 @@ export function MailLayout() {
                         <TooltipTrigger asChild>
                           <button
                             onClick={() => moveThreadTo('archive')}
-                            className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]"
+                             className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80"
                           >
-                            <Archive2 className="fill-muted-foreground dark:fill-[#9B9B9B]" />
+                            <Archive2 className="fill-black dark:fill-white" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                        <TooltipContent side="right">
                           {t('common.threadDisplay.archive')}
                         </TooltipContent>
                       </Tooltip>
@@ -941,12 +943,12 @@ export function MailLayout() {
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => moveThreadTo('bin')}
-                              className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white focus:outline-none focus:ring-0 dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]"
+                               className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80"
                             >
-                              <Trash className="fill-iconLight dark:fill-iconDark" />
+                              <Trash className="fill-black dark:fill-white" />
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                          <TooltipContent side="right">
                             {t('common.mail.moveToBin')}
                           </TooltipContent>
                         </Tooltip>
@@ -958,12 +960,12 @@ export function MailLayout() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <DropdownMenuTrigger asChild>
-                              <button className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white/90 backdrop-blur-sm hover:bg-white focus:outline-none focus:ring-0 dark:border-none dark:bg-[#313131]/90 dark:hover:bg-[#313131]">
-                                <ThreeDots className="fill-iconLight dark:fill-iconDark" />
+                              <button  className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-lightTint backdrop-blur-sm hover:bg-lightTint/80 dark:border-none dark:bg-darkTint dark:hover:bg-darkTint/80">
+                                <ThreeDots className="fill-black dark:fill-white" />
                               </button>
                             </DropdownMenuTrigger>
                           </TooltipTrigger>
-                          <TooltipContent side="right" className="bg-white dark:bg-[#313131]">
+                          <TooltipContent side="right">
                             More actions
                           </TooltipContent>
                         </Tooltip>
@@ -1267,8 +1269,8 @@ export const Categories = () => {
         icon: (
           <DynamicIcon
             className={cn(
-              'fill-muted-foreground h-4 w-4 dark:fill-white',
-              isSelected && 'fill-white',
+              'fill-[#71717A] h-4 w-4 dark:fill-[#6F6F6F]',
+              isSelected && 'fill-white dark:fill-white',
             )}
           />
         ),
@@ -1281,7 +1283,7 @@ export const Categories = () => {
           ...base,
           icon: (
             <Lightning
-              className={cn('fill-muted-foreground dark:fill-white', isSelected && 'fill-white')}
+              className={cn('fill-[#71717A] dark:fill-[#6F6F6F]', isSelected && 'fill-white dark:fill-white')}
             />
           ),
         };
@@ -1290,7 +1292,7 @@ export const Categories = () => {
           ...base,
           icon: (
             <Mail
-              className={cn(isSelected ? 'fill-white' : 'fill-muted-foreground dark:fill-white')}
+              className={cn(isSelected ? 'fill-white dark:fill-white' : 'fill-[#71717A] dark:fill-[#6F6F6F]')}
             />
           ),
           colors:
@@ -1302,8 +1304,8 @@ export const Categories = () => {
           icon: (
             <User
               className={cn(
-                'fill-muted-foreground h-3.5 w-3.5 dark:fill-white',
-                isSelected && 'fill-white',
+                'fill-[#71717A] h-3.5 w-3.5 dark:fill-[#6F6F6F]',
+                isSelected && 'fill-white dark:fill-white',
               )}
             />
           ),
@@ -1314,8 +1316,8 @@ export const Categories = () => {
           icon: (
             <MegaPhone
               className={cn(
-                'fill-muted-foreground h-3.5 w-3.5 dark:fill-white',
-                isSelected && 'fill-white',
+                'fill-[#71717A] h-3.5 w-3.5 dark:fill-[#6F6F6F]',
+                isSelected && 'fill-white dark:fill-white',
               )}
             />
           ),
@@ -1325,7 +1327,7 @@ export const Categories = () => {
           ...base,
           icon: (
             <Bell
-              className={cn('fill-muted-foreground dark:fill-white', isSelected && 'fill-white')}
+              className={cn('fill-[#71717A] dark:fill-[#6F6F6F]', isSelected && 'fill-white dark:fill-white')}
             />
           ),
         };
@@ -1335,8 +1337,8 @@ export const Categories = () => {
           icon: (
             <ScanEye
               className={cn(
-                'fill-muted-foreground h-4 w-4 dark:fill-white',
-                isSelected && 'fill-white',
+                'fill-[#71717A] h-4 w-4 dark:fill-[#6F6F6F]',
+                isSelected && 'fill-white dark:fill-white',
               )}
             />
           ),
@@ -1439,18 +1441,21 @@ function NavigationDropdown() {
   return (
     <DropdownMenu onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className="bg-muted flex h-7 items-center gap-1 rounded-md border-none px-1.5 dark:bg-[#2C2C2C]"
-        >
+        <Button variant="secondary" className="flex h-7 items-center gap-1 rounded-md border-none px-2">
           {currentFolder.icon && <currentFolder.icon className="h-4 w-4" />}
-          <span className="text-sm">{currentFolder.name}</span>
-          <ChevronDown
-            className={`text-muted-foreground h-2 w-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
-          />
+          <span>{currentFolder.name}</span>
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            <ChevronDown className="text-black dark:text-white h-2 w-2" />
+          </motion.div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-muted w-56 font-medium dark:bg-[#2C2C2C]" align="start">
+      <DropdownMenuContent
+        className="bg-lightTint dark:bg-darkTint w-56 border-none font-medium"
+        align="start"
+      >
         {allItems.map((section, sectionIndex) => (
           <div key={sectionIndex}>
             {section.title && (
@@ -1502,12 +1507,12 @@ function UserAccountSelect() {
 
   const activeAccount = useMemo(() => {
     if (!activeConnection || !connections) return null;
-    return connections.connections?.find((connection) => connection.id === activeConnection.id);
+    return connections.connections?.find((connection: IConnection) => connection.id === activeConnection.id);
   }, [activeConnection, connections]);
 
   const otherConnections = useMemo(() => {
     if (!connections || !activeAccount) return [];
-    return connections.connections.filter((connection) => connection.id !== activeAccount?.id);
+    return connections.connections.filter((connection: IConnection) => connection.id !== activeAccount?.id);
   }, [connections, activeAccount]);
 
   const handleAccountSwitch = (connectionId: string) => async () => {
@@ -1564,16 +1569,16 @@ function UserAccountSelect() {
             }`}
           >
             <div className="relative">
-              <Avatar className="size-7 rounded-[7px]">
+              <Avatar className="size-[26px] rounded-[6px]">
                 <AvatarImage
                   className="rounded-[5px]"
                   src={activeAccount.picture || undefined}
                   alt={activeAccount.name || activeAccount.email}
                 />
-                <AvatarFallback className="rounded-[7px] text-[10px] dark:bg-[#2C2C2C]">
+                <AvatarFallback className="rounded-[7px] text-[10px] dark:bg-darkTint">
                   {(activeAccount.name || activeAccount.email)
                     .split(' ')
-                    .map((n) => n[0])
+                    .map((n: string) => n[0])
                     .join('')
                     .toUpperCase()
                     .slice(0, 2)}
@@ -1604,7 +1609,7 @@ function UserAccountSelect() {
                     <span>
                       {(activeAccount.name || session.user.name || 'User')
                         .split(' ')
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join('')
                         .toUpperCase()
                         .slice(0, 2)}
@@ -1634,8 +1639,8 @@ function UserAccountSelect() {
               </p>
 
               {connections.connections
-                ?.filter((connection) => connection.id !== activeConnection?.id)
-                .map((connection) => (
+                ?.filter((connection: IConnection) => connection.id !== activeConnection?.id)
+                .map((connection: IConnection) => (
                   <DropdownMenuItem
                     key={connection.id}
                     onClick={handleAccountSwitch(connection.id)}
@@ -1650,7 +1655,7 @@ function UserAccountSelect() {
                       <AvatarFallback className="rounded-lg text-[10px]">
                         {(connection.name || connection.email)
                           .split(' ')
-                          .map((n) => n[0])
+                          .map((n: string) => n[0])
                           .join('')
                           .toUpperCase()
                           .slice(0, 2)}
@@ -1729,7 +1734,7 @@ function UserAccountSelect() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {otherConnections.slice(0, 2).map((connection) => (
+      {otherConnections.slice(0, 2).map((connection: IConnection) => (
         <Tooltip key={connection.id}>
           <TooltipTrigger asChild>
             <button
@@ -1757,7 +1762,7 @@ function UserAccountSelect() {
                   <AvatarFallback className="rounded-[7px] text-[10px]">
                     {(connection.name || connection.email)
                       .split(' ')
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join('')
                       .toUpperCase()
                       .slice(0, 2)}
@@ -1776,7 +1781,7 @@ function UserAccountSelect() {
       ))}
 
       {otherConnections.length > 2 && (
-        <button 
+        <button
           className="hover:bg-muted flex h-6 w-6 cursor-pointer items-center justify-center rounded-[7px]"
           aria-label={`${otherConnections.length - 2} more accounts available`}
         >
@@ -1784,7 +1789,7 @@ function UserAccountSelect() {
         </button>
       )}
 
-      {!isPro ? (
+      {/* {!isPro ? (
         <AddConnectionDialog>
           <button className="bg-muted flex hidden h-7 w-7 cursor-pointer items-center justify-center rounded-[5px] border border-dashed lg:flex dark:bg-[#262626] dark:text-[#929292]">
             <Plus className="size-4" />
@@ -1797,7 +1802,7 @@ function UserAccountSelect() {
         >
           <Plus className="size-4" />
         </button>
-      )}
+      )} */}
     </div>
   );
 }
@@ -1885,17 +1890,14 @@ function LabelSelect({ isMultiSelectMode }: { isMultiSelectMode: boolean }) {
     <div className="flex items-center gap-2">
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className="bg-muted flex h-7 min-w-fit items-center gap-1 rounded-md border-none px-2 dark:bg-[#2C2C2C]"
-          >
+          <Button variant="secondary" className="flex h-7 min-w-fit items-center gap-1 rounded-md px-2">
             {selectedLabelObjects.length === 0 ? (
               <>
-                <Tag className="fill-iconLight dark:fill-iconDark h-4 w-4" />
+                <Tag className="fill-black dark:fill-white h-4 w-4" />
               </>
             ) : (
               <>
-                <Tag className="fill-iconLight dark:fill-iconDark h-4 w-4" />
+                <Tag className="fill-black dark:fill-white h-4 w-4" />
                 <div className="flex hidden items-center gap-1 md:flex">
                   <span className="text-muted-foreground text-xs">Any of:</span>
                   {selectedLabelObjects.slice(0, 2).map((label) => (
@@ -1920,9 +1922,9 @@ function LabelSelect({ isMultiSelectMode }: { isMultiSelectMode: boolean }) {
                 </div>
               </>
             )}
-            <ChevronDown
+            {/* <ChevronDown
               className={`text-muted-foreground hidden h-2 w-2 transition-transform duration-200 lg:block ${isOpen ? 'rotate-180' : 'rotate-0'}`}
-            />
+            /> */}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-muted w-56 font-medium dark:bg-[#2C2C2C]" align="start">
@@ -1988,85 +1990,108 @@ function CategorySelect({ isMultiSelectMode }: { isMultiSelectMode: boolean }) {
   });
   const categories = Categories();
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeTabElementRef = useRef<HTMLButtonElement>(null);
-  const overlayContainerRef = useRef<HTMLDivElement>(null);
-  const [textSize, setTextSize] = useState<'normal' | 'small' | 'xs' | 'hidden'>('normal');
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const buttonsRef = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  
+  // Separate animation state that's independent of category state
+  const [animationState, setAnimationState] = useState<{
+    bounds: { x: number; width: number } | null;
+    categoryId: string;
+  }>({
+    bounds: null,
+    categoryId: category || 'All Mail',
+  });
+  
+  const [isAnimating, setIsAnimating] = useState(false);
 
   if (folder !== 'inbox') return <div className="h-8"></div>;
 
-  useEffect(() => {
-    const checkTextSize = () => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const containerWidth = container.offsetWidth;
-      const selectedCategory = categories.find((cat) => cat.id === category);
-
-      // Calculate approximate widths needed for different text sizes
-      const baseIconWidth = (categories.length - 1) * 40; // unselected icons + gaps
-      const selectedTextLength = selectedCategory ? selectedCategory.name.length : 10;
-
-      // Estimate width needed for different text sizes
-      const normalTextWidth = selectedTextLength * 8 + 60; // normal text
-      const smallTextWidth = selectedTextLength * 7 + 50; // smaller text
-      const xsTextWidth = selectedTextLength * 6 + 40; // extra small text
-      const minIconWidth = 40; // minimum width for icon-only selected button
-
-      const totalNormal = baseIconWidth + normalTextWidth;
-      const totalSmall = baseIconWidth + smallTextWidth;
-      const totalXs = baseIconWidth + xsTextWidth;
-      const totalIconOnly = baseIconWidth + minIconWidth;
-
-      if (containerWidth >= totalNormal) {
-        setTextSize('normal');
-      } else if (containerWidth >= totalSmall) {
-        setTextSize('small');
-      } else if (containerWidth >= totalXs) {
-        setTextSize('xs');
-      } else if (containerWidth >= totalIconOnly) {
-        setTextSize('hidden'); // Hide text but keep button wide
-      } else {
-        setTextSize('hidden'); // Hide text in very tight spaces
-      }
-    };
-
-    checkTextSize();
-
-    // Use ResizeObserver to handle container size changes
-    const resizeObserver = new ResizeObserver(() => {
-      checkTextSize();
-    });
-
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
+  // Calculate bounds immediately when component mounts or buttons change
+  const calculateBounds = useCallback((targetCategory?: string) => {
+    const categoryToCheck = targetCategory || category;
+    const selectedButton = buttonsRef.current[categoryToCheck];
+    const container = containerRef.current;
+    
+    if (selectedButton && container) {
+      const containerRect = container.getBoundingClientRect();
+      const buttonRect = selectedButton.getBoundingClientRect();
+      
+      return {
+        x: buttonRect.left - containerRect.left,
+        width: buttonRect.width,
+      };
     }
+    return null;
+  }, [category]);
 
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [category, categories]);
+  // Initial bounds calculation
+  useLayoutEffect(() => {
+    const bounds = calculateBounds();
+    if (bounds) {
+      setAnimationState(prev => ({
+        ...prev,
+        bounds,
+        categoryId: category || 'All Mail',
+      }));
+    }
+  }, [calculateBounds, category]);
 
-  const renderCategoryButton = (cat: CategoryType, isOverlay = false, idx: number) => {
-    const isSelected = cat.id === (category || 'All Mail');
-    const bgColor = getCategoryColor(cat.id);
+  const handleCategoryClick = useCallback((cat: CategoryType) => {
+    // Calculate new bounds and update animation state immediately
+    const newBounds = calculateBounds(cat.id);
+    if (newBounds) {
+      setAnimationState({
+        bounds: newBounds,
+        categoryId: cat.id,
+      });
+    }
+    
+    // Set animation flag
+    setIsAnimating(true);
+    
+    // Update category state immediately (lightweight)
+    setCategory(cat.id);
+    
+    // Delay heavy operations until well after animation completes
+    setTimeout(() => {
+      setSearchValue({
+        value: `${cat.searchValue} ${cleanSearchValue(searchValue.value).trim().length ? `AND ${cleanSearchValue(searchValue.value)}` : ''}`,
+        highlight: '',
+        folder: '',
+      });
+      setMail({ ...mail, bulkSelected: [] });
+      setIsAnimating(false);
+    }, 500); // Increased delay to ensure animation fully completes
+  }, [calculateBounds, setCategory, searchValue, setSearchValue, mail, setMail]);
+
+  const renderCategoryButton = (cat: CategoryType, idx: number) => {
+    // Use animation state for visual selection, not category state
+    const isSelected = cat.id === animationState.categoryId;
 
     return (
       <Tooltip key={cat.id}>
         <TooltipTrigger asChild>
           <button
-            onClick={() => {
-              setCategory(cat.id);
-              setSearchValue({
-                value: `${cat.searchValue} ${cleanSearchValue(searchValue.value).trim().length ? `AND ${cleanSearchValue(searchValue.value)}` : ''}`,
-                highlight: '',
-                folder: '',
-              });
-              setMail({ ...mail, bulkSelected: [] });
+            ref={(el) => {
+              buttonsRef.current[cat.id] = el;
+              // Recalculate bounds when button ref changes
+              if (el && isSelected) {
+                setTimeout(() => {
+                  const bounds = calculateBounds();
+                  if (bounds) {
+                    setAnimationState(prev => ({
+                      ...prev,
+                      bounds,
+                    }));
+                  }
+                }, 0);
+              }
             }}
+            onClick={() => handleCategoryClick(cat)}
             className={cn(
-              'flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border-none transition-colors',
-              isSelected ? cn('flex-1 border-none text-white', bgColor) : 'h-7 w-7',
+              'relative z-10 flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md border-none transition-colors',
+              isSelected 
+                ? 'fill-white dark:fill-white' 
+                : 'fill-[#71717A] hover:fill-[#5C5C5C] dark:fill-[#6F6F6F] dark:hover:fill-[#8A8A8A]',
             )}
           >
             <div className="relative overflow-visible rounded-lg">{cat.icon}</div>
@@ -2079,32 +2104,36 @@ function CategorySelect({ isMultiSelectMode }: { isMultiSelectMode: boolean }) {
     );
   };
 
-  // Update clip path when category changes
-  useEffect(() => {
-    const container = overlayContainerRef.current;
-    const activeTabElement = activeTabElementRef.current;
-
-    if (category && container && activeTabElement) {
-      setMail({ ...mail, bulkSelected: [] });
-      const { offsetLeft, offsetWidth } = activeTabElement;
-      const clipLeft = Math.max(0, offsetLeft - 2);
-      const clipRight = Math.min(container.offsetWidth, offsetLeft + offsetWidth + 2);
-      const containerWidth = container.offsetWidth;
-
-      if (containerWidth) {
-        container.style.clipPath = `inset(0 ${Number(100 - (clipRight / containerWidth) * 100).toFixed(2)}% 0 ${Number((clipLeft / containerWidth) * 100).toFixed(2)}%)`;
-      }
-    }
-  }, [category, textSize]); // Changed from showText to textSize
-
   if (isMultiSelectMode) {
     return <BulkSelectActions />;
   }
 
+  // Use animation state for background color (independent of category state)
+  const animatedCategory = categories.find(cat => cat.id === animationState.categoryId);
+  const bgColor = animatedCategory ? getCategoryColor(animatedCategory.id) : getCategoryColor('All Mail');
+
   return (
-    <div className="bg-muted relative h-7 w-full rounded-lg dark:bg-[#0F0F0F]">
+    <div ref={containerRef} className="bg-lightTint dark:bg-darkTint relative h-7 w-full rounded-md overflow-hidden">
+      {/* Animated selection background */}
+      {animationState.bounds && (
+        <motion.div
+          className={cn('absolute top-0 h-7 rounded-md', bgColor)}
+          initial={false}
+          animate={{
+            x: animationState.bounds.x,
+            width: animationState.bounds.width,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 800,
+            damping: 50,
+            mass: 0.5
+          }}
+        />
+      )}
+      
       <div className="flex w-full items-start justify-start gap-0.5">
-        {categories.map((cat, idx) => renderCategoryButton(cat, false, idx))}
+        {categories.map((cat, idx) => renderCategoryButton(cat, idx))}
       </div>
     </div>
   );
@@ -2153,9 +2182,9 @@ function CategoryDropdown({ isMultiSelectMode }: { isMultiSelectMode?: boolean }
         >
           <div className="relative overflow-visible">{selectedCategory.icon}</div>
           <span className="text-xs font-medium">{selectedCategory.name}</span>
-          <ChevronDown
+          {/* <ChevronDown
             className={`h-2 w-2 text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
-          />
+          /> */}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-muted w-48 font-medium dark:bg-[#2C2C2C]" align="start">
@@ -2187,8 +2216,8 @@ function MailCategoryTabs({
   const [, setSearchValue] = useSearchValue();
   const categories = Categories();
   const defaultCategoryId = useDefaultCategoryId();
-  const [activeCategory, setActiveCategory] = useQueryState('category', { 
-    defaultValue: initialCategory || defaultCategoryId 
+  const [activeCategory, setActiveCategory] = useQueryState('category', {
+    defaultValue: initialCategory || defaultCategoryId,
   });
 
   const containerRef = useRef<HTMLDivElement>(null);

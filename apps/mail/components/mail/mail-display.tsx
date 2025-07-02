@@ -363,7 +363,7 @@ const MailDisplayLabels = ({ labels }: { labels: string[] }) => {
             <TooltipTrigger>
               <Badge
                 key={`${label}-${index}`}
-                className={`rounded-md p-1 ${bgColor} dark:border-panelDark -ml-1.5 border-2 border-white transition-transform first:ml-0`}
+                className={`rounded-lg p-1 ${bgColor} dark:border-panelDark -ml-1.5 border-2 border-white transition-transform first:ml-0`}
               >
                 {icon}
               </Badge>
@@ -467,7 +467,7 @@ const AiSummary = () => {
 
   return (
     <div
-      className="mt-2 max-w-3xl rounded-xl border border-[#8B5CF6] bg-white px-4 py-2 dark:bg-[#252525]"
+      className="mt-2 max-w-3xl rounded-lg border border-[#8B5CF6] bg-white px-4 py-2 dark:bg-[#252525]"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex cursor-pointer items-center" onClick={handleToggle}>
@@ -497,7 +497,7 @@ const ActionButton = ({ onClick, icon, text, shortcut }: ActionButtonProps) => {
   return (
     <button
       onClick={onClick}
-      className="inline-flex h-7 items-center justify-center gap-1 overflow-hidden rounded-md border bg-white px-1.5 dark:border-none dark:bg-[#313131]"
+      className="inline-flex h-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white px-1.5 dark:border-none dark:bg-[#313131]"
     >
       {icon}
       <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
@@ -1285,7 +1285,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
         <PopoverTrigger asChild>
           <div
             key={person.email}
-            className="dark:bg-panelDark inline-flex items-center justify-start gap-1.5 overflow-hidden rounded-full border bg-white p-1 pr-2"
+            className="dark:bg-darkTint inline-flex items-center justify-start gap-1.5 overflow-hidden rounded-full border bg-lightTint p-1 pr-2"
           >
             <Avatar className="h-5 w-5">
               <AvatarImage src={getEmailLogo(person.email)} className="rounded-full" />
@@ -1371,48 +1371,17 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
         <div className="relative h-full overflow-y-auto">
           <div
             className={cn(
-              'px-4',
-              index === 0 && 'bg-panelLight dark:bg-panelDark mb-2 rounded-b-xl pb-2',
+              'px-1',
+              index === 0 && 'bg-transparent',
             )}
           >
-            {index === 0 && (
-              <div>
-                <span className="inline-flex items-center gap-2 font-medium text-black dark:text-white">
-            
-                  <span>
-                    
-                    {emailData.subject}{' '}
-                    <span className="text-muted-foreground dark:text-[#8C8C8C]">
-                      {totalEmails && totalEmails > 1 && `[${totalEmails}]`}
-                    </span>
-                  </span>
-                  
-                  <RenderLabels labels={threadLabels} />
-                </span>
 
-                <div className="mt- flex items-center gap-2">
-                  {/* {emailData?.tags?.length ? (
-                    <MailDisplayLabels labels={emailData?.tags.map((t) => t.name) || []} />
-                  ) : null} */}
-                  {/* {emailData?.tags?.length ? (
-                    <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
-                  ) : null} */}
-                  {/* {threadLabels.length ? (
-                    <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
-                  ) : null} */}
-                </div>
-                {brainState?.enabled && <AiSummary />}
-                {threadAttachments && threadAttachments.length > 0 && (
-                  <ThreadAttachments attachments={threadAttachments} />
-                )}
-              </div>
-            )}
           </div>
 
           <div
             className={cn(
-              'bg-panelLight dark:bg-panelDark flex cursor-pointer flex-col rounded-t-xl pb-2 transition-all duration-200',
-              isCollapsed && 'rounded-xl',
+              'bg-lightTint dark:bg-darkTint flex cursor-pointer flex-col rounded-t-lg pb-2 transition-all duration-200',
+              isCollapsed && 'rounded-lg',
             )}
             onClick={toggleCollapse}
           >
@@ -1465,7 +1434,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                               </button>
                             </PopoverTrigger>
                             <PopoverContent
-                              className="flex dark:bg-panelDark w-[420px] rounded-lg border p-4  text-left shadow-lg overflow-auto"
+                              className="flex dark:bg-darkTint w-[420px] rounded-lg border p-4  text-left shadow-lg overflow-auto"
                               onBlur={(e) => {
                                 if (!triggerRef.current?.contains(e.relatedTarget)) {
                                   setOpenDetailsPopover(false);
@@ -1733,7 +1702,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
 
           <div
             className={cn(
-              'bg-panelLight dark:bg-panelDark mb-2 grid overflow-hidden rounded-b-xl transition-all duration-200',
+              'bg-lightTint dark:bg-darkTint mb-2 grid overflow-hidden rounded-b-lg transition-all duration-200',
               isCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
             )}
             onClick={(e) => e.stopPropagation()}

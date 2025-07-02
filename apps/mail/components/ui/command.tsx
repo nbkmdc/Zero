@@ -17,7 +17,7 @@ const Command = React.forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      'bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-lg',
+      'bg-[#171717] text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-lg',
       className,
     )}
     {...props}
@@ -32,7 +32,7 @@ const CommandDialog = ({ children, ...props }: DialogProps) => {
       <DialogDescription className="sr-only">Command</DialogDescription>
       <DialogContent
         showOverlay={true}
-        className="dark:bg-panelDark w-full overflow-hidden rounded-xl border-none bg-white p-0 sm:max-w-lg [&>button:last-child]:hidden"
+        className="dark:bg-[#171717] w-full overflow-hidden rounded-xl bg-white p-0 sm:max-w-lg [&>button:last-child]:hidden"
       >
         <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-2">
           {children}

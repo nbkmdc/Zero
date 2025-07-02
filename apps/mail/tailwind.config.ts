@@ -17,7 +17,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        darkBackground: '#141414',
+        darkBackground: '#0a0a0a',
         lightBackground: '#FFFFFF',
         offsetDark: '#0A0A0A',
         offsetLight: '#F5F5F5',
@@ -31,8 +31,14 @@ export default {
         subtleBlack: '#1F1F1F',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        darkForeground: '#262626',
+        lightForeground: '#f5f5f5',
+        darkTint: '#171717',
+        lightTint: '#f7f7f7',
         skyBlue: '#0066FF',
         shinyGray: '#A1A1A1',
+        borderDark: '#232323',
+        borderLight: '#e5e5e5',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
