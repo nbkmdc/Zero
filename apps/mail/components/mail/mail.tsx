@@ -100,6 +100,7 @@ import { useTranslations } from 'use-intl';
 import type { IConnection } from '@/types';
 import { useTheme } from 'next-themes';
 import { FOLDERS } from '@/lib/utils';
+import { m } from '@/paraglide/messages';
 import { useQueryState } from 'nuqs';
 import { useAtom } from 'jotai';
 import { toast } from 'sonner';
@@ -422,7 +423,6 @@ export function MailLayout() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
   const { data: connections } = useConnections();
-  const t = useTranslations();
   const prevFolderRef = useRef(folder);
   const { enableScope, disableScope } = useHotkeysContext();
   const { data: activeConnection } = useActiveConnection();
@@ -1028,7 +1028,6 @@ export function MailLayout() {
 }
 
 function BulkSelectActions() {
-  const t = useTranslations();
   const [isLoading, setIsLoading] = useState(false);
   const [isUnsub, setIsUnsub] = useState(false);
   const [mail, setMail] = useMail();
@@ -1241,7 +1240,6 @@ function BulkSelectActions() {
 }
 
 export const Categories = () => {
-  const t = useTranslations();
   const defaultCategoryIdInner = useDefaultCategoryId();
   const categorySettings = useCategorySettings();
   const defaultCategoryId = useDefaultCategoryId();
