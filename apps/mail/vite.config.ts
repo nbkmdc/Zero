@@ -56,6 +56,9 @@ export default defineConfig({
     postcss: {
       plugins: [tailwindcss()],
     },
+    modules: {
+      localsConvention: 'camelCase',
+    },
   },
   //   ssr: {
   //     optimizeDeps: {
@@ -69,5 +72,9 @@ export default defineConfig({
     alias: {
       tslib: 'tslib/tslib.es6.js',
     },
+  },
+  assetsInclude: ['**/*.css'],
+  optimizeDeps: {
+    include: ['react-tweet'],
   },
 });

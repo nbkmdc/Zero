@@ -6,6 +6,13 @@ import {
   getMainSearchTerm,
   parseNaturalLanguageSearch,
 } from '@/lib/utils';
+import { AgGridReact } from 'ag-grid-react';
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import './ag-grid-mail.css';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 import {
   Archive2,
   ExclamationCircle,
@@ -719,6 +726,25 @@ const Draft = memo(({ message }: { message: { id: string } }) => {
   );
 });
 
+const ThreadCellRenderer = memo((props: any) => {
+  const { data: message, rowIndex } = props;
+  const { focusedIndex, keyboardActive } = props.context;
+  
+  if (!message) return null;
+  
+  const Comp = props.context.folder === FOLDERS.DRAFT ? Draft : Thread;
+  
+  return (
+    <Comp
+      key={message.id}
+      message={message}
+      isKeyboardFocused={focusedIndex === rowIndex && keyboardActive}
+      index={rowIndex}
+      onClick={props.context.handleMailClick}
+    />
+  );
+});
+
 export const MailList = memo(
   function MailList() {
     const { folder } = useParams<{ folder: string }>();
@@ -771,6 +797,8 @@ export const MailList = memo(
       return () => window.removeEventListener('refreshMailList', handleRefresh);
     }, [refetch]);
 
+    const parentRef = useRef<HTMLDivElement>(null);
+    const vListRef = useRef<any>(null);
     const handleNavigateToThread = useCallback(
       (threadId: string | null) => {
         setThreadId(threadId);
@@ -921,43 +949,57 @@ export const MailList = memo(
 
     const filteredItems = useMemo(() => items.filter((item) => item.id), [items]);
 
-    const Comp = useMemo(() => (folder === FOLDERS.DRAFT ? Draft : Thread), [folder]);
+    const datasource = useMemo(() => ({
+      getRows: (params: any) => {
+        const startRow = params.startRow;
+        const endRow = params.endRow;
+        
+        const rowsThisPage = filteredItems.slice(startRow, endRow);
+        
+        // Check if we need to load more data
+        if (endRow >= filteredItems.length && hasNextPage && !isFetchingNextPage) {
+          void loadMore();
+        }
+        
+        const lastRow = hasNextPage ? undefined : filteredItems.length;
+        
+        params.successCallback(rowsThisPage, lastRow);
+      }
+    }), [filteredItems, hasNextPage, isFetchingNextPage, loadMore]);
 
-    const vListRenderer = useCallback(
-      (index: number) => {
-        const item = filteredItems[index];
-        return item ? (
-          <>
-            <Comp
-              key={item.id}
-              message={item}
-              isKeyboardFocused={focusedIndex === index && keyboardActive}
-              index={index}
-              onClick={handleMailClick}
-            />
-            {index === filteredItems.length - 1 && (isFetchingNextPage || isFetchingMail) ? (
-              <div className="flex w-full justify-center py-4">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent dark:border-white dark:border-t-transparent" />
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <></>
-        );
-      },
-      [
-        folder,
-        filteredItems,
-        focusedIndex,
-        keyboardActive,
-        isFetchingMail,
-        isFetchingNextPage,
-        handleMailClick,
-        isLoading,
-        isFetching,
-        hasNextPage,
-      ],
-    );
+    const columnDefs = useMemo(() => [
+      {
+        field: 'thread',
+        cellRenderer: ThreadCellRenderer,
+        flex: 1,
+        sortable: false,
+        resizable: false,
+        suppressMenu: true,
+      }
+    ], []);
+
+    const gridContext = useMemo(() => ({
+      items: filteredItems,
+      parentRef,
+      handleNavigateToThread,
+      handleMailClick,
+      folder,
+      focusedIndex,
+      keyboardActive,
+    }), [filteredItems, handleNavigateToThread, handleMailClick, folder, focusedIndex, keyboardActive]);
+
+    const gridOptions = useMemo(() => ({
+      rowModelType: 'infinite',
+      cacheBlockSize: 50,
+      cacheOverflowSize: 2,
+      maxConcurrentDatasourceRequests: 1,
+      infiniteInitialRowCount: 1,
+      maxBlocksInCache: 10,
+      suppressRowClickSelection: true,
+      suppressCellFocus: true,
+      headerHeight: 0,
+      rowHeight: 80,
+    }), []);
 
     return (
       <>
@@ -989,27 +1031,16 @@ export const MailList = memo(
                 </div>
               </div>
             ) : (
-              <div className="flex flex-1 flex-col" id="mail-list-scroll">
-                <VList
+              <div className="flex flex-1 flex-col ag-theme-alpine" id="mail-list-scroll">
+                <AgGridReact
                   ref={vListRef}
-                  count={filteredItems.length}
-                  overscan={20}
-                  keepMounted={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+                  columnDefs={columnDefs}
+                  datasource={datasource}
+                  context={gridContext}
+                  gridOptions={gridOptions}
                   className="scrollbar-none flex-1 overflow-x-hidden"
-                  children={vListRenderer}
-                  onScroll={() => {
-                    if (!vListRef.current) return;
-                    const endIndex = vListRef.current.findEndIndex();
-                    if (
-                      // if the shown items are last 5 items, load more
-                      Math.abs(filteredItems.length - 1 - endIndex) < 5 &&
-                      !isLoading &&
-                      !isFetchingNextPage &&
-                      !isFetchingMail &&
-                      hasNextPage
-                    ) {
-                      void loadMore();
-                    }
+                  onGridReady={(params) => {
+                    params.api.setDatasource(datasource);
                   }}
                 />
               </div>

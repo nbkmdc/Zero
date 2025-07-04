@@ -1,0 +1,26 @@
+/* Custom ag-grid styles for mail list */
+.ag-theme-alpine .ag-root-wrapper {
+  border: none;
+}
+
+.ag-theme-alpine .ag-row {
+  border: none;
+  background: transparent;
+}
+
+.ag-theme-alpine .ag-cell {
+  border: none;
+  padding: 0;
+}
+
+.ag-theme-alpine .ag-header {
+  display: none;
+}
+
+.ag-theme-alpine .ag-center-cols-container {
+  min-height: 100%;
+}
+
+.ag-theme-alpine .ag-body-viewport {
+  overflow-x: hidden !important;
+}
