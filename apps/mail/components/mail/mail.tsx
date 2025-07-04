@@ -56,6 +56,7 @@ import { Plus, ChevronDown, ChevronUp, Inbox } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ThreadDisplay } from '@/components/mail/thread-display';
 import { trpcClient, useTRPC } from '@/providers/query-provider';
+import { CreateEmail } from '../create/create-email';
 import { focusedIndexAtom } from '@/hooks/use-mail-navigation';
 import { backgroundQueueAtom } from '@/store/backgroundQueue';
 import { handleUnsubscribe } from '@/lib/email-utils.client';
@@ -454,6 +455,9 @@ export function MailLayout() {
  
   const [threadId, setThreadId] = useQueryState('threadId');
   const [, setActiveReplyId] = useQueryState('activeReplyId');
+  const [dialogOpen, setDialogOpen] = useQueryState('isComposeOpen');
+  const [, setDraftId] = useQueryState('draftId');
+  const [, setTo] = useQueryState('to');
   const { data: emailData } = useThread(threadId ?? null);
 
   // Derive star/important state from email data (optimistic updates will handle the state)
@@ -528,6 +532,15 @@ export function MailLayout() {
   const isInArchive = folder === FOLDERS.ARCHIVE;
   const isInSpam = folder === FOLDERS.SPAM;
   const isInBin = folder === FOLDERS.BIN;
+
+  const handleOpenChange = async (open: boolean) => {
+    if (!open) {
+      await setDialogOpen(null);
+    } else {
+      await setDialogOpen('true');
+    }
+    await Promise.all([setDraftId(null), setTo(null), setActiveReplyId(null), setMode(null)]);
+  };
 
   useEffect(() => {
     if (threadId) {
@@ -687,7 +700,20 @@ export function MailLayout() {
                           )}
                         </div>
 
+
                         <div className="flex items-center gap-2">
+                        <Button
+                              variant="secondary"
+                              className={cn(
+                                'text-muted-foreground relative flex h-7 w-7 select-none items-center justify-start overflow-hidden rounded-md border-none pl-2 text-left text-sm font-normal shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&_svg]:size-3.5',
+                              )}
+                              onClick={async () => {
+                                await setDialogOpen('true');
+                                await Promise.all([setDraftId(null), setTo(null), setActiveReplyId(null), setMode(null)]);
+                              }}
+                            >
+                              <CustomIcons.PencilCompose className="size-3.5 fill-[#71717A] dark:fill-white" />
+                            </Button>
                           {folder === 'inbox' && (
                             <LabelSelect isMultiSelectMode={mail.bulkSelected.length > 0} />
                           )}
@@ -1023,6 +1049,13 @@ export function MailLayout() {
           <AIToggleButton />
         </ResizablePanelGroup>
       </div>
+
+      {/* Compose Email Dialog */}
+      <Dialog open={!!dialogOpen} onOpenChange={handleOpenChange}>
+        <DialogContent className="h-screen w-screen max-w-none border-none bg-lightBackground p-0 shadow-none dark:bg-darkBackground">
+          <CreateEmail />
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }
