@@ -109,7 +109,7 @@ export const extractFilterValue = (filter: string): string => {
   return value || '';
 };
 
-export const defaultPageSize = 20;
+export const defaultPageSize = 100;
 
 export function createSectionId(title: string) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-');

@@ -6,6 +6,7 @@ import {
   getMainSearchTerm,
   parseNaturalLanguageSearch,
 } from '@/lib/utils';
+import { useOptimisticThreadState as useOptimisticThreadStateWithOptions } from '@/hooks/use-optimized-thread-state';
 import {
   Archive2,
   ExclamationCircle,
@@ -66,256 +67,131 @@ const Thread = memo(
     isKeyboardFocused,
     index,
   }: ThreadProps & { index?: number }) {
-    const [searchValue, setSearchValue] = useSearchValue();
+    const [searchValue] = useSearchValue();
     const { folder } = useParams<{ folder: string }>();
-    const [{}, threads] = useThreads();
-    const [threadId] = useQueryState('threadId');
+    const [id] = useQueryState('threadId');
+    const [focusedIndex] = useAtom(focusedIndexAtom);
+    const trpc = useTRPC();
+    const { data: settings } = useSettings();
+    const queryClient = useQueryClient();
+
+    const isSelected = useMemo(() => id === message.id, [id, message.id]);
+    const isVisible = useMemo(
+      () => Math.abs((index || 0) - (focusedIndex || 0)) < 10 || isSelected,
+      [index, focusedIndex, isSelected],
+    );
+
+    // Only fetch thread data for visible/selected items using the optimized useThread
     const {
       data: getThreadData,
       isGroupThread,
       latestDraft,
     } = useThread(message.id, message.historyId);
-    const [id, setThreadId] = useQueryState('threadId');
-    const [, setActiveReplyId] = useQueryState('activeReplyId');
-    const [focusedIndex, setFocusedIndex] = useAtom(focusedIndexAtom);
 
-    // const latestReceivedMessage = useMemo(() => {
-    //   if (!getThreadData?.messages) return getThreadData?.latest;
+    const latestMessage = getThreadData?.latest || message;
+    const idToUse = message.id;
 
-    //   const nonDraftMessages = getThreadData.messages.filter((msg) => !msg.isDraft);
-    //   if (nonDraftMessages.length === 0) return getThreadData?.latest;
+    // Memoized computed values
+    const computedData = useMemo(() => {
+      if (!getThreadData)
+        return {
+          displayUnread: (message as any).unread || false,
+          isGroupThread: false,
+          displayStarred: false,
+          displayImportant: false,
+          cleanName: (message as any).sender?.name?.trim()?.replace(/^['"]|['"]$/g, '') || '',
+          hasNotes: false,
+        };
 
-    //   return (
-    //     nonDraftMessages.sort((a, b) => {
-    //       const dateA = new Date(a.receivedOn).getTime();
-    //       const dateB = new Date(b.receivedOn).getTime();
-    //       return dateB - dateA;
-    //     })[0] || getThreadData?.latest
-    //   );
-    // }, [getThreadData?.messages, getThreadData?.latest]);
+      const displayUnread = getThreadData.hasUnread ?? false;
+      const displayStarred =
+        (latestMessage as any)?.tags?.some((tag: any) => tag.name === 'STARRED') ?? false;
+      const displayImportant =
+        (latestMessage as any)?.tags?.some((tag: any) => tag.name === 'IMPORTANT') ?? false;
+      const cleanName =
+        (latestMessage as any)?.sender?.name?.trim()?.replace(/^['"]|['"]$/g, '') || '';
 
-    const latestMessage = getThreadData?.latest;
-    const idToUse = useMemo(() => latestMessage?.threadId ?? latestMessage?.id, [latestMessage]);
-    const { data: settingsData } = useSettings();
-    const queryClient = useQueryClient();
+      return {
+        displayUnread,
+        isGroupThread,
+        displayStarred,
+        displayImportant,
+        cleanName,
+        hasNotes: false, // TODO: Implement notes check when needed
+      };
+    }, [getThreadData, latestMessage, message, isGroupThread]);
 
-    // Check if thread has notes
-    const { data: threadNotes } = useThreadNotes(idToUse || '');
-    const hasNotes = useMemo(() => {
-      return (threadNotes?.notes && threadNotes.notes.length > 0) || false;
-    }, [threadNotes?.notes]);
+    // Optimistic state only for visible items
+    const optimisticState = useOptimisticThreadStateWithOptions(idToUse, { enabled: isVisible });
 
-    const optimisticState = useOptimisticThreadState(idToUse ?? '');
-
-    const displayStarred = useMemo(() => {
-      if (optimisticState.optimisticStarred !== null) {
-        return optimisticState.optimisticStarred;
-      }
-      return getThreadData?.latest?.tags?.some((tag) => tag.name === 'STARRED') ?? false;
-    }, [optimisticState.optimisticStarred, getThreadData?.latest?.tags]);
-
-    const displayImportant = useMemo(() => {
-      if (optimisticState.optimisticImportant !== null) {
-        return optimisticState.optimisticImportant;
-      }
-      return getThreadData?.latest?.tags?.some((tag) => tag.name === 'IMPORTANT') ?? false;
-    }, [optimisticState.optimisticImportant, getThreadData?.latest?.tags]);
-
-    const displayUnread = useMemo(() => {
-      if (optimisticState.optimisticRead !== null) {
-        return !optimisticState.optimisticRead;
-      }
-      return getThreadData?.hasUnread ?? false;
-    }, [optimisticState.optimisticRead, getThreadData?.hasUnread]);
-
-    const optimisticLabels = useMemo(() => {
-      if (!getThreadData?.labels) return [];
-
-      let labels = [...getThreadData.labels];
-      const hasStarredLabel = labels.some((label) => label.name === 'STARRED');
-
-      if (optimisticState.optimisticStarred !== null) {
-        if (optimisticState.optimisticStarred && !hasStarredLabel) {
-          labels.push({ id: 'starred-optimistic', name: 'STARRED' });
-        } else if (!optimisticState.optimisticStarred && hasStarredLabel) {
-          labels = labels.filter((label) => label.name !== 'STARRED');
-        }
-      }
-
-      if (optimisticState.optimisticLabels) {
-        labels = labels.filter(
-          (label) => !optimisticState.optimisticLabels.removedLabelIds.includes(label.id),
-        );
-
-        optimisticState.optimisticLabels.addedLabelIds.forEach((labelId) => {
-          if (!labels.some((label) => label.id === labelId)) {
-            labels.push({ id: labelId, name: labelId });
-          }
-        });
-      }
-
-      return labels;
-    }, [
-      getThreadData?.labels,
-      optimisticState.optimisticStarred,
-      optimisticState.optimisticLabels,
-    ]);
-
+    // Event handlers
     const { optimisticToggleStar, optimisticToggleImportant, optimisticMoveThreadsTo } =
       useOptimisticActions();
 
     const handleToggleStar = useCallback(
       async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!getThreadData || !idToUse) return;
-
-        const newStarredState = !displayStarred;
-        optimisticToggleStar([idToUse], newStarredState);
+        optimisticToggleStar([idToUse], !computedData.displayStarred);
       },
-      [getThreadData, idToUse, displayStarred, optimisticToggleStar],
+      [idToUse, computedData.displayStarred, optimisticToggleStar],
     );
 
     const handleToggleImportant = useCallback(
       async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!getThreadData || !idToUse) return;
-
-        const newImportantState = !displayImportant;
-        optimisticToggleImportant([idToUse], newImportantState);
+        optimisticToggleImportant([idToUse], !computedData.displayImportant);
       },
-      [getThreadData, idToUse, displayImportant, optimisticToggleImportant],
-    );
-
-    const handleNext = useCallback(
-      (id: string) => {
-        if (!id || !threads.length || focusedIndex === null) return setThreadId(null);
-        if (focusedIndex < threads.length - 1) {
-          const nextThread = threads[focusedIndex];
-          if (nextThread) {
-            setThreadId(nextThread.id);
-            // Don't clear activeReplyId - let ThreadDisplay handle Reply All auto-opening
-            setFocusedIndex(focusedIndex);
-          }
-        }
-      },
-      [threads, id, focusedIndex],
+      [idToUse, computedData.displayImportant, optimisticToggleImportant],
     );
 
     const moveThreadTo = useCallback(
       async (destination: ThreadDestination) => {
-        if (!idToUse) return;
-        handleNext(idToUse);
         optimisticMoveThreadsTo([idToUse], folder ?? '', destination);
       },
-      [idToUse, folder, optimisticMoveThreadsTo, handleNext],
+      [idToUse, folder, optimisticMoveThreadsTo],
     );
 
-    const emailContent = getThreadData?.latest?.body;
+    // Render skeleton while loading
+    if (!getThreadData && isVisible) {
+      return (
+        <div className="select-none border-b md:my-1 md:border-none">
+          <div className="mx-1 flex cursor-pointer flex-col items-start rounded-lg px-4 py-2">
+            <div className="flex w-full items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-16" />
+            </div>
+          </div>
+        </div>
+      );
+    }
 
-    // Prefetch email template processing for better performance
-    useEffect(() => {
-      if (!latestMessage?.body || !latestMessage?.sender?.email) return;
-
-      const senderEmail = latestMessage.sender.email;
-      const isTrustedSender =
-        settingsData?.settings?.externalImages ||
-        settingsData?.settings?.trustedSenders?.includes(senderEmail);
-
-      // Prefetch with both trusted and untrusted states for instant switching
-      queryClient.prefetchQuery({
-        queryKey: ['email-template', latestMessage.body, isTrustedSender],
-        queryFn: () => template(latestMessage.body, isTrustedSender),
-        staleTime: 30 * 60 * 1000,
-        gcTime: 60 * 60 * 1000,
-      });
-
-      // Also prefetch the opposite state for instant image toggle
-      queryClient.prefetchQuery({
-        queryKey: ['email-template', latestMessage.body, !isTrustedSender],
-        queryFn: () => template(latestMessage.body, !isTrustedSender),
-        staleTime: 30 * 60 * 1000,
-        gcTime: 60 * 60 * 1000,
-      });
-    }, [latestMessage?.body, latestMessage?.sender?.email, settingsData?.settings, queryClient]);
-
-    const { labels: threadLabels } = useThreadLabels(
-      optimisticLabels ? optimisticLabels.map((l) => l.id) : [],
-    );
-
-    const mainSearchTerm = useMemo(() => {
-      if (!searchValue.highlight) return '';
-      return getMainSearchTerm(searchValue.highlight);
-    }, [searchValue.highlight]);
-
-    const semanticSearchQuery = useMemo(() => {
-      if (!searchValue.value) return '';
-      return parseNaturalLanguageSearch(searchValue.value);
-    }, [searchValue.value]);
-
-    // Use semanticSearchQuery when filtering/searching emails
-    useEffect(() => {
-      if (semanticSearchQuery && semanticSearchQuery !== searchValue.value) {
-        // Update the search value with our semantic query
-        setSearchValue({
-          ...searchValue,
-          value: semanticSearchQuery,
-          isAISearching: true,
-        });
-      }
-    }, [semanticSearchQuery]);
-
-    const [mailState, setMail] = useMail();
-
-    const isMailSelected = useMemo(() => {
-      if (!threadId || !idToUse) return false;
-      const _threadId = idToUse;
-      return _threadId === threadId || threadId === mailState.selected;
-    }, [threadId, idToUse, mailState.selected]);
-
-    const isMailBulkSelected = idToUse ? mailState.bulkSelected.includes(idToUse) : false;
-
-    const isFolderInbox = folder === FOLDERS.INBOX || !folder;
-    const isFolderSpam = folder === FOLDERS.SPAM;
     const isFolderSent = folder === FOLDERS.SENT;
     const isFolderBin = folder === FOLDERS.BIN;
 
-    const cleanName = useMemo(() => {
-      if (!latestMessage?.sender?.name) return '';
-      return latestMessage.sender.name.trim().replace(/^['"]|['"]$/g, '');
-    }, [latestMessage?.sender?.name]);
-
-    // Check if thread has a draft
-    const hasDraft = useMemo(() => {
-      return !!latestDraft;
-    }, [latestDraft]);
-
-    const content =
-      latestMessage && getThreadData ? (
+    return (
+      <ThreadContextMenu threadId={idToUse}>
         <div
           className={cn(
             'select-none border-b md:my-1 md:border-none',
-            displayUnread ? '' : 'opacity-60',
+            computedData.displayUnread ? '' : 'opacity-60',
           )}
-          onClick={onClick ? onClick(latestMessage) : undefined}
-          onMouseEnter={() => {
-            window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: idToUse } }));
-          }}
-          onMouseLeave={() => {
-            window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: null } }));
-          }}
+          onClick={onClick ? onClick(latestMessage as any) : undefined}
         >
           <div
             data-thread-id={idToUse}
-            key={idToUse}
             className={cn(
               'hover:bg-offsetLight hover:bg-primary/5 group relative mx-1 flex cursor-pointer flex-col items-start rounded-lg py-2 text-left text-sm transition-all hover:opacity-100',
-              (isMailSelected || isMailBulkSelected || isKeyboardFocused) &&
-                'border-border bg-primary/5 opacity-100',
+              isSelected && 'border-border bg-primary/5 opacity-100',
               isKeyboardFocused && 'ring-primary/50',
-              'relative',
-              'group',
             )}
           >
+            {/* Action buttons */}
             <div
               className={cn(
                 'dark:bg-panelDark absolute right-2 z-[25] flex -translate-y-1/2 items-center gap-1 rounded-xl border bg-white p-1 opacity-0 shadow-sm group-hover:opacity-100',
@@ -333,7 +209,7 @@ const Thread = memo(
                     <Star2
                       className={cn(
                         'h-4 w-4',
-                        displayStarred
+                        computedData.displayStarred
                           ? 'fill-yellow-400 stroke-yellow-400'
                           : 'fill-transparent stroke-[#9D9D9D] dark:stroke-[#9D9D9D]',
                       )}
@@ -344,24 +220,22 @@ const Thread = memo(
                   side={index === 0 ? 'bottom' : 'top'}
                   className="mb-1 bg-white dark:bg-[#1A1A1A]"
                 >
-                  {displayStarred
-                    ? m['common.threadDisplay.unstar']()
-                    : m['common.threadDisplay.star']()}
+                  {computedData.displayStarred ? 'Unstar' : 'Star'}
                 </TooltipContent>
               </Tooltip>
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn(
-                      'h-6 w-6 [&_svg]:size-3.5',
-                      displayImportant ? 'hover:bg-orange-200/70 dark:hover:bg-orange-800/40' : '',
-                    )}
+                    className="h-6 w-6 [&_svg]:size-3.5"
                     onClick={handleToggleImportant}
                   >
                     <ExclamationCircle
-                      className={cn(displayImportant ? 'fill-orange-400' : 'fill-[#9D9D9D]')}
+                      className={cn(
+                        computedData.displayImportant ? 'fill-orange-400' : 'fill-[#9D9D9D]',
+                      )}
                     />
                   </Button>
                 </TooltipTrigger>
@@ -369,9 +243,10 @@ const Thread = memo(
                   side={index === 0 ? 'bottom' : 'top'}
                   className="dark:bg-panelDark mb-1 bg-white"
                 >
-                  {m['common.mail.toggleImportant']()}
+                  Toggle Important
                 </TooltipContent>
               </Tooltip>
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -390,17 +265,18 @@ const Thread = memo(
                   side={index === 0 ? 'bottom' : 'top'}
                   className="dark:bg-panelDark mb-1 bg-white"
                 >
-                  {m['common.threadDisplay.archive']()}
+                  Archive
                 </TooltipContent>
               </Tooltip>
-              {!isFolderBin ? (
+
+              {!isFolderBin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 hover:bg-[#FDE4E9] dark:hover:bg-[#411D23] [&_svg]:size-3.5"
-                      onClick={(e: React.MouseEvent) => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         moveThreadTo('bin');
                       }}
@@ -412,37 +288,21 @@ const Thread = memo(
                     side={index === 0 ? 'bottom' : 'top'}
                     className="dark:bg-panelDark mb-1 bg-white"
                   >
-                    {m['common.actions.Bin']()}
+                    Delete
                   </TooltipContent>
                 </Tooltip>
-              ) : null}
+              )}
             </div>
 
+            {/* Thread content */}
             <div className="relative flex w-full items-center justify-between gap-4 px-4">
               <div>
                 <Avatar
                   className={cn(
                     'h-8 w-8 rounded-full',
-                    displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
+                    computedData.displayUnread && !isSelected && !isFolderSent ? '' : 'border',
                   )}
                 >
-                  <div
-                    className={cn(
-                      'flex h-full w-full items-center justify-center rounded-full bg-[#006FFE] p-2 dark:bg-[#006FFE]',
-                      {
-                        hidden: !isMailBulkSelected,
-                      },
-                    )}
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      setMail((prev: Config) => ({
-                        ...prev,
-                        bulkSelected: prev.bulkSelected.filter((id: string) => id !== idToUse),
-                      }));
-                    }}
-                  >
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
                   {isGroupThread ? (
                     <div className="flex h-full w-full items-center justify-center rounded-full bg-[#FFFFFF] p-2 dark:bg-[#373737]">
                       <GroupPeople className="h-4 w-4" />
@@ -451,30 +311,17 @@ const Thread = memo(
                     <>
                       <AvatarImage
                         className="rounded-full bg-[#FFFFFF] dark:bg-[#373737]"
-                        src={getEmailLogo(latestMessage.sender.email)}
-                        alt={cleanName || latestMessage.sender.email}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
+                        src={getEmailLogo((latestMessage as any)?.sender?.email || '')}
+                        alt={computedData.cleanName || (latestMessage as any)?.sender?.email || ''}
                       />
-                      <AvatarFallback
-                        className="rounded-full bg-[#FFFFFF] font-bold text-[#9F9F9F] dark:bg-[#373737]"
-                        delayMs={0}
-                      >
-                        {cleanName
-                          ? cleanName[0]?.toUpperCase()
-                          : latestMessage.sender.email[0]?.toUpperCase()}
+                      <AvatarFallback className="rounded-full bg-[#FFFFFF] font-bold text-[#9F9F9F] dark:bg-[#373737]">
+                        {computedData.cleanName
+                          ? computedData.cleanName[0]?.toUpperCase()
+                          : (latestMessage as any)?.sender?.email?.[0]?.toUpperCase()}
                       </AvatarFallback>
                     </>
                   )}
                 </Avatar>
-                {/* {displayUnread && !isMailSelected && !isFolderSent ? (
-                  <>
-                    <span className="absolute left-2 top-2 size-1.5 rounded bg-[#006FFE]" />
-                    <span className="absolute left-[11px] top-4 size-1 rounded bg-[#006FFE]" />
-                  </>
-                ) : null} */}
               </div>
 
               <div className="flex w-full justify-between">
@@ -483,52 +330,43 @@ const Thread = memo(
                     <div className="flex flex-row items-center gap-[4px]">
                       <span
                         className={cn(
-                          displayUnread && !isMailSelected ? 'font-bold' : 'font-medium',
+                          computedData.displayUnread && !isSelected ? 'font-bold' : 'font-medium',
                           'text-md flex items-baseline gap-1 group-hover:opacity-100',
                         )}
                       >
                         {isFolderSent ? (
-                          <span
-                            className={cn(
-                              'overflow-hidden truncate text-sm md:max-w-[15ch] xl:max-w-[25ch]',
+                          <span className="overflow-hidden truncate text-sm md:max-w-[15ch] xl:max-w-[25ch]">
+                            {highlightText(
+                              (latestMessage as any)?.subject || '',
+                              searchValue.highlight,
                             )}
-                          >
-                            {highlightText(latestMessage.subject, searchValue.highlight)}
                           </span>
                         ) : (
                           <div className="flex items-center gap-1">
-                            <span className={cn('line-clamp-1 overflow-hidden text-sm')}>
-                              {highlightText(
-                                cleanNameDisplay(latestMessage.sender.name) || '',
-                                searchValue.highlight,
-                              )}
+                            <span className="line-clamp-1 overflow-hidden text-sm">
+                              {highlightText(computedData.cleanName || '', searchValue.highlight)}
                             </span>
-                            {displayUnread && !isMailSelected && !isFolderSent ? (
-                              <>
-                                <span className="ml-0.5 size-2 rounded-full bg-[#006FFE]" />
-                              </>
-                            ) : null}
+                            {computedData.displayUnread && !isSelected && !isFolderSent && (
+                              <span className="ml-0.5 size-2 rounded-full bg-[#006FFE]" />
+                            )}
                           </div>
-                        )}{' '}
-                        {/* {!isFolderSent ? (
-                          <span className="hidden items-center space-x-2 md:flex">
-                            <RenderLabels labels={threadLabels} />
-                          </span>
-                        ) : null} */}
+                        )}
                       </span>
-                      {getThreadData.totalReplies > 1 ? (
+
+                      {(getThreadData?.totalReplies || 0) > 1 && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="rounded-md text-xs opacity-70">
-                              [{getThreadData.totalReplies}]
+                              [{getThreadData?.totalReplies}]
                             </span>
                           </TooltipTrigger>
                           <TooltipContent className="p-1 text-xs">
-                            {m['common.mail.replies']({ count: getThreadData.totalReplies })}
+                            {getThreadData?.totalReplies} replies
                           </TooltipContent>
                         </Tooltip>
-                      ) : null}
-                      {hasDraft ? (
+                      )}
+
+                      {latestDraft && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="inline-flex items-center">
@@ -537,93 +375,51 @@ const Thread = memo(
                           </TooltipTrigger>
                           <TooltipContent className="p-1 text-xs">Draft</TooltipContent>
                         </Tooltip>
-                      ) : null}
-                      {hasNotes ? (
+                      )}
+
+                      {computedData.hasNotes && (
                         <span className="inline-flex items-center">
                           <StickyNote className="h-3 w-3 fill-amber-500 stroke-amber-500 dark:fill-amber-400 dark:stroke-amber-400" />
                         </span>
-                      ) : null}
-                      <MailLabels labels={optimisticLabels} />
+                      )}
                     </div>
-                    {latestMessage.receivedOn ? (
-                      <p
-                        className={cn(
-                          'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
-                          isMailSelected && 'opacity-100',
-                        )}
-                      >
-                        {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
+
+                    {(latestMessage as any)?.receivedOn && (
+                      <p className="text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]">
+                        {formatDate((latestMessage as any).receivedOn.split('.')[0] || '')}
                       </p>
-                    ) : null}
+                    )}
                   </div>
+
                   <div className="flex justify-between">
                     {isFolderSent ? (
-                      <p
-                        className={cn(
-                          'mt-1 line-clamp-1 max-w-[50ch] overflow-hidden text-sm text-[#8C8C8C] md:max-w-[25ch]',
-                        )}
-                      >
-                        {latestMessage.to.map((e) => e.email).join(', ')}
+                      <p className="mt-1 line-clamp-1 max-w-[50ch] overflow-hidden text-sm text-[#8C8C8C] md:max-w-[25ch]">
+                        {(latestMessage as any)?.to?.map((e: any) => e.email).join(', ')}
                       </p>
                     ) : (
-                      <p
-                        className={cn(
-                          'mt-1 line-clamp-1 w-[95%] min-w-0 overflow-hidden text-sm text-[#8C8C8C]',
+                      <p className="mt-1 line-clamp-1 w-[95%] min-w-0 overflow-hidden text-sm text-[#8C8C8C]">
+                        {highlightText(
+                          (latestMessage as any)?.subject || '',
+                          searchValue.highlight,
                         )}
-                      >
-                        {highlightText(latestMessage.subject, searchValue.highlight)}
                       </p>
                     )}
-                    {/* <div className="hidden md:flex">
-                      {getThreadData.labels ? <MailLabels labels={getThreadData.labels} /> : null}
-                    </div> */}
-                    {threadLabels && (
-                      <div className="mr-0 flex w-fit items-center justify-end gap-1">
-                        {!isFolderSent ? <RenderLabels labels={threadLabels} /> : null}
-                        {/* {getThreadData.labels ? <MailLabels labels={getThreadData.labels} /> : null} */}
-                      </div>
-                    )}
                   </div>
-                  {emailContent && (
-                    <div className="text-muted-foreground mt-2 line-clamp-2 text-xs">
-                      {highlightText(emailContent, searchValue.highlight)}
-                    </div>
-                  )}
-                  {/* {mainSearchTerm && (
-                    <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
-                      <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5">
-                        {mainSearchTerm}
-                      </span>
-                    </div>
-                  )} */}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      ) : null;
-
-    return latestMessage ? (
-      !optimisticState.shouldHide && idToUse ? (
-        <ThreadContextMenu
-          threadId={idToUse}
-          isInbox={isFolderInbox}
-          isSpam={isFolderSpam}
-          isSent={isFolderSent}
-          isBin={isFolderBin}
-        >
-          {content}
-        </ThreadContextMenu>
-      ) : null
-    ) : null;
+      </ThreadContextMenu>
+    );
   },
   (prev, next) => {
-    const isSameMessage =
+    return (
       prev.message.id === next.message.id &&
       prev.isKeyboardFocused === next.isKeyboardFocused &&
       prev.index === next.index &&
-      Object.is(prev.onClick, next.onClick);
-    return isSameMessage;
+      Object.is(prev.onClick, next.onClick)
+    );
   },
 );
 
@@ -1002,12 +798,11 @@ export const MailList = memo(
                 </div>
               </div>
             ) : (
-              <div className="flex flex-1 flex-col" id="mail-list-scroll">
+              <div className="flex flex-1 flex-col overflow-y-auto" id="mail-list-scroll">
                 <VList
                   ref={vListRef}
                   count={filteredItems.length}
-                  overscan={20}
-                  keepMounted={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+                  overscan={10}
                   className="scrollbar-none flex-1 overflow-x-hidden"
                   children={vListRenderer}
                   onScroll={() => {

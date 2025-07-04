@@ -385,12 +385,11 @@ export function MailLayout() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
-  const { data: connections } = useConnections();
   const prevFolderRef = useRef(folder);
   const { enableScope, disableScope } = useHotkeysContext();
-  const { data: activeConnection } = useActiveConnection();
   const { activeFilters, clearAllFilters } = useCommandPalette();
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useQueryState('isCommandPaletteOpen');
+  const queryClient = useQueryClient();
+  const [, setIsCommandPaletteOpen] = useQueryState('isCommandPaletteOpen');
 
   const { data: activeAccount } = useActiveConnection();
 
@@ -409,6 +408,20 @@ export function MailLayout() {
 
   const [{ isFetching, refetch: refetchThreads }] = useThreads();
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const trpc = useTRPC();
+
+  //   useEffect(() => {
+  //     queryClient.prefetchInfiniteQuery({
+  //       initialPageParam: '',
+  //       pages: 3,
+  //       getNextPageParam: (lastPage: any) => lastPage?.nextPageToken ?? null,
+  //       queryKey: trpc.mail.listThreads.queryKey({
+  //         q: '',
+  //         folder,
+  //         labelIds: [],
+  //       }),
+  //     });
+  //   }, []);
 
   const [threadId, setThreadId] = useQueryState('threadId');
 

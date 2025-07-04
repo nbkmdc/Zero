@@ -35,6 +35,7 @@ export const useThreads = () => {
         staleTime: 60 * 1000 * 60, // 1 minute
         refetchOnMount: true,
         refetchIntervalInBackground: true,
+        refetchOnWindowFocus: false,
       },
     ),
   );
@@ -65,20 +66,19 @@ export const useThreads = () => {
 };
 
 export const useThread = (threadId: string | null, historyId?: string | null) => {
-  const { data: session } = useSession();
   const [_threadId] = useQueryState('threadId');
-  const id = threadId ? threadId : _threadId;
+  const id = threadId ?? _threadId;
   const trpc = useTRPC();
-  const { data } = useSettings();
-  const { resolvedTheme } = useTheme();
+  const { data: settings } = useSettings();
+  //   const { resolvedTheme } = useTheme();
 
   const previousHistoryId = usePrevious(historyId ?? null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!historyId || !previousHistoryId || historyId === previousHistoryId) return;
-    queryClient.invalidateQueries({ queryKey: trpc.mail.get.queryKey({ id: id! }) });
-  }, [historyId, previousHistoryId, id]);
+    if (!historyId || !previousHistoryId || historyId === previousHistoryId || !id) return;
+    queryClient.invalidateQueries({ queryKey: trpc.mail.get.queryKey({ id }) });
+  }, [historyId, previousHistoryId, id, queryClient, trpc.mail.get]);
 
   const threadQuery = useQuery(
     trpc.mail.get.queryOptions(
@@ -86,68 +86,77 @@ export const useThread = (threadId: string | null, historyId?: string | null) =>
         id: id!,
       },
       {
-        enabled: !!id && !!session?.user.id,
+        enabled: !!id,
         staleTime: 1000 * 60 * 60, // 60 minutes
       },
     ),
   );
 
-  const isTrustedSender = useMemo(
-    () =>
-      !!data?.settings?.externalImages ||
-      !!data?.settings?.trustedSenders?.includes(threadQuery.data?.latest?.sender.email ?? ''),
-    [data?.settings, threadQuery.data?.latest?.sender.email],
-  );
+  //   const { mutateAsync: processEmailContent } = useMutation(
+  //     trpc.mail.processEmailContent.mutationOptions(),
+  //   );
 
-  const latestDraft = useMemo(() => {
-    if (!threadQuery.data?.latest?.id) return undefined;
-    return threadQuery.data.messages.findLast((e) => e.isDraft);
-  }, [threadQuery]);
+  //   const prefetchEmailContent = useMemo(
+  //     () => async (message: ParsedMessage, isTrusted: boolean) => {
+  //       return queryClient.prefetchQuery({
+  //         queryKey: ['email-content', message.id, isTrusted, resolvedTheme],
+  //         queryFn: async () => {
+  //           const result = await processEmailContent({
+  //             html: message.decodedBody ?? '',
+  //             shouldLoadImages: isTrusted,
+  //             theme: (resolvedTheme as 'light' | 'dark') || 'light',
+  //           });
 
-  const { mutateAsync: processEmailContent } = useMutation(
-    trpc.mail.processEmailContent.mutationOptions(),
-  );
+  //           return {
+  //             html: result.processedHtml,
+  //             hasBlockedImages: result.hasBlockedImages,
+  //           };
+  //         },
+  //       });
+  //     },
+  //     [queryClient, processEmailContent, resolvedTheme],
+  //   );
 
-  const prefetchEmailContent = async (message: ParsedMessage) => {
-    return queryClient.prefetchQuery({
-      queryKey: ['email-content', message.id, isTrustedSender, resolvedTheme],
-      queryFn: async () => {
-        const result = await processEmailContent({
-          html: message.decodedBody ?? '',
-          shouldLoadImages: isTrustedSender,
-          theme: (resolvedTheme as 'light' | 'dark') || 'light',
-        });
+  const computedData = useMemo(() => {
+    if (!threadQuery.data)
+      return {
+        isTrustedSender: false,
+        latestDraft: undefined,
+        isGroupThread: false,
+        finalData: undefined,
+      };
 
-        return {
-          html: result.processedHtml,
-          hasBlockedImages: result.hasBlockedImages,
-        };
-      },
-    });
-  };
+    const { data } = threadQuery;
+    const latest = data.latest;
 
-  useEffect(() => {
-    if (!threadQuery.data?.latest?.id) return;
-    prefetchEmailContent(threadQuery.data.latest);
-  }, [threadQuery.data?.latest]);
+    const isTrustedSender =
+      !!settings?.settings.externalImages ||
+      !!settings?.settings.trustedSenders?.includes(latest?.sender.email ?? '');
 
-  const isGroupThread = useMemo(() => {
-    if (!threadQuery.data?.latest?.id) return false;
-    const totalRecipients = [
-      ...(threadQuery.data.latest.to || []),
-      ...(threadQuery.data.latest.cc || []),
-      ...(threadQuery.data.latest.bcc || []),
-    ].length;
-    return totalRecipients > 1;
-  }, [threadQuery.data]);
+    const latestDraft = latest?.id ? data.messages.findLast((e) => e.isDraft) : undefined;
 
-  const finalData: IGetThreadResponse | undefined = useMemo(() => {
-    if (!threadQuery.data) return undefined;
-    return {
-      ...threadQuery.data,
-      messages: threadQuery.data?.messages.filter((e) => !e.isDraft),
+    const isGroupThread = latest?.id
+      ? [...(latest.to || []), ...(latest.cc || []), ...(latest.bcc || [])].length > 1
+      : false;
+
+    const finalData: IGetThreadResponse = {
+      ...data,
+      messages: data.messages.filter((e) => !e.isDraft),
     };
-  }, [threadQuery.data]);
 
-  return { ...threadQuery, data: finalData, isGroupThread, latestDraft };
+    return { isTrustedSender, latestDraft, isGroupThread, finalData };
+  }, [threadQuery.data, settings]);
+
+  //   useEffect(() => {
+  //     const latest = threadQuery.data?.latest;
+  //     if (!latest?.id) return;
+  //     prefetchEmailContent(latest, computedData.isTrustedSender);
+  //   }, [threadQuery.data?.latest?.id, prefetchEmailContent, computedData.isTrustedSender]);
+
+  return {
+    ...threadQuery,
+    data: computedData.finalData,
+    isGroupThread: computedData.isGroupThread,
+    latestDraft: computedData.latestDraft,
+  };
 };
