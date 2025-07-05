@@ -755,6 +755,7 @@ export const MailList = memo(
     const [searchValue, setSearchValue] = useSearchValue();
     const [{ refetch, isLoading, isFetching, isFetchingNextPage, hasNextPage }, items, , loadMore] =
       useThreads();
+    const isLoadingMoreRef = useRef(false);
     const trpc = useTRPC();
     const isFetchingMail = useIsFetching({ queryKey: trpc.mail.get.queryKey() }) > 0;
     const itemsRef = useRef(items);
@@ -956,9 +957,12 @@ export const MailList = memo(
           const rowsThisPage = filteredItems.slice(startRow, endRow);
 
           // Check if we need to load more data
-          //   if (endRow >= filteredItems.length && hasNextPage && !isFetchingNextPage) {
-          //     void loadMore();
-          //   }
+          if (endRow >= filteredItems.length && hasNextPage && !isFetchingNextPage && !isLoadingMoreRef.current) {
+            isLoadingMoreRef.current = true;
+            void loadMore().finally(() => {
+              isLoadingMoreRef.current = false;
+            });
+          }
 
           const lastRow = hasNextPage ? undefined : filteredItems.length;
 
