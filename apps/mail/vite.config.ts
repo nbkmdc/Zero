@@ -73,8 +73,8 @@ export default defineConfig({
       tslib: 'tslib/tslib.es6.js',
     },
   },
-  assetsInclude: ['**/*.css'],
-  optimizeDeps: {
-    include: ['react-tweet'],
-  },
+  //   assetsInclude: ['**/*.css'],
+  //   optimizeDeps: {
+  //     include: ['react-tweet'],
+  //   },
 });
