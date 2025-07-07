@@ -103,6 +103,16 @@ struct SearchRequest: Codable {
     let pageToken: String?
 }
 
+struct OAuthRequest: Codable {
+    let provider: String
+    let callbackURL: String
+}
+
+struct OAuthSession: Codable {
+    let user: User
+    let sessionToken: String?
+}
+
 enum AppTheme: String, CaseIterable {
     case light = "light"
     case dark = "dark"

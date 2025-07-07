@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AuthenticationServices
 
 @MainActor
 class AuthService: ObservableObject {
@@ -8,7 +9,7 @@ class AuthService: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let baseURL = "http://localhost:8787"
+    private let baseURL = "https://sapi.0.email"
     private let session = URLSession.shared
     
     init() {
@@ -98,5 +99,103 @@ class AuthService: ObservableObject {
     
     var authToken: String? {
         UserDefaults.standard.string(forKey: "auth_token")
+    }
+    
+    func loginWithGoogle() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let oauthRequest = OAuthRequest(
+                provider: "google",
+                callbackURL: "zeromail://oauth/callback"
+            )
+            let url = URL(string: "\(baseURL)/api/auth/sign-in/social")!
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(oauthRequest)
+            
+            let (data, response) = try await session.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse,
+               httpResponse.statusCode == 302,
+               let location = httpResponse.value(forHTTPHeaderField: "Location") {
+                
+                await performOAuthFlow(authURL: location)
+            } else {
+                errorMessage = "Failed to initiate OAuth flow"
+            }
+        } catch {
+            errorMessage = "Network error: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+    }
+    
+    @MainActor
+    private func performOAuthFlow(authURL: String) async {
+        guard let url = URL(string: authURL) else {
+            errorMessage = "Invalid OAuth URL"
+            return
+        }
+        
+        let session = ASWebAuthenticationSession(
+            url: url,
+            callbackURLScheme: "zeromail"
+        ) { [weak self] callbackURL, error in
+            Task { @MainActor in
+                if let error = error {
+                    self?.errorMessage = "OAuth failed: \(error.localizedDescription)"
+                    return
+                }
+                
+                guard let callbackURL = callbackURL else {
+                    self?.errorMessage = "No callback URL received"
+                    return
+                }
+                
+                await self?.handleOAuthCallback(callbackURL)
+            }
+        }
+        
+        session.presentationContextProvider = self
+        session.prefersEphemeralWebBrowserSession = false
+        session.start()
+    }
+    
+    private func handleOAuthCallback(_ url: URL) async {
+        do {
+            let sessionURL = URL(string: "\(baseURL)/api/auth/session")!
+            var request = URLRequest(url: sessionURL)
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            let (data, response) = try await session.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse,
+               httpResponse.statusCode == 200 {
+                let sessionData = try JSONDecoder().decode(OAuthSession.self, from: data)
+                
+                currentUser = sessionData.user
+                isAuthenticated = true
+                
+                if let token = sessionData.sessionToken {
+                    UserDefaults.standard.set(token, forKey: "auth_token")
+                }
+                UserDefaults.standard.set(try JSONEncoder().encode(sessionData.user), forKey: "current_user")
+            } else {
+                errorMessage = "Failed to get session data"
+            }
+        } catch {
+            errorMessage = "Session error: \(error.localizedDescription)"
+        }
+    }
+}
+
+extension AuthService: ASWebAuthenticationPresentationContextProviding {
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        return ASPresentationAnchor()
     }
 }

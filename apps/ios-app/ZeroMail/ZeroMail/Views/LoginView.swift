@@ -4,8 +4,6 @@ struct LoginView: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var themeManager: ThemeManager
     
-    @State private var email = ""
-    @State private var password = ""
     @State private var showingAlert = false
     
     var body: some View {
@@ -24,56 +22,27 @@ struct LoginView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(themeManager.primaryTextColor)
                             
-                            Text("Enter your Zero email below to login to your account")
+                            Text("Sign in with your Google account to access Zero Mail")
                                 .font(.body)
                                 .foregroundColor(themeManager.secondaryTextColor)
                                 .multilineTextAlignment(.center)
                         }
                         
                         VStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Email")
-                                    .font(.subheadline)
-                                    .foregroundColor(themeManager.secondaryTextColor)
-                                
-                                TextField("nizzy@0.email", text: $email)
-                                    .textFieldStyle(ZeroTextFieldStyle(themeManager: themeManager))
-                                    .keyboardType(.emailAddress)
-                                    .autocapitalization(.none)
-                                    .disableAutocorrection(true)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("Password")
-                                        .font(.subheadline)
-                                        .foregroundColor(themeManager.secondaryTextColor)
-                                    
-                                    Spacer()
-                                    
-                                    Button("Forgot your password?") {
-                                        
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(themeManager.secondaryTextColor)
-                                }
-                                
-                                SecureField("••••••••", text: $password)
-                                    .textFieldStyle(ZeroTextFieldStyle(themeManager: themeManager))
-                            }
-                            
                             Button(action: {
                                 Task {
-                                    await authService.login(email: email, password: password)
+                                    await authService.loginWithGoogle()
                                 }
                             }) {
-                                HStack {
+                                HStack(spacing: 12) {
                                     if authService.isLoading {
                                         ProgressView()
                                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                             .scaleEffect(0.8)
                                     } else {
-                                        Text("Login")
+                                        Image(systemName: "globe")
+                                            .font(.title2)
+                                        Text("Continue with Google")
                                             .fontWeight(.medium)
                                     }
                                 }
@@ -83,19 +52,34 @@ struct LoginView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                             }
-                            .disabled(authService.isLoading || email.isEmpty || password.isEmpty)
+                            .disabled(authService.isLoading)
                             
-                            HStack {
-                                Text("Don't have an account?")
-                                    .font(.subheadline)
-                                    .foregroundColor(themeManager.secondaryTextColor)
-                                
-                                Button("Sign up") {
+                            if authService.isAuthenticated, let user = authService.currentUser {
+                                VStack(spacing: 8) {
+                                    Text("Welcome, \(user.name)!")
+                                        .font(.headline)
+                                        .foregroundColor(themeManager.primaryTextColor)
                                     
+                                    Text(user.email)
+                                        .font(.subheadline)
+                                        .foregroundColor(themeManager.secondaryTextColor)
+                                    
+                                    if let avatar = user.avatar {
+                                        AsyncImage(url: URL(string: avatar)) { image in
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                        } placeholder: {
+                                            Circle()
+                                                .fill(themeManager.offsetColor)
+                                        }
+                                        .frame(width: 60, height: 60)
+                                        .clipShape(Circle())
+                                    }
                                 }
-                                .font(.subheadline)
-                                .foregroundColor(themeManager.primaryTextColor)
-                                .underline()
+                                .padding()
+                                .background(themeManager.panelColor)
+                                .cornerRadius(12)
                             }
                         }
                     }

@@ -18,6 +18,7 @@
 		A1000017000000000000000000000001 /* MailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000018000000000000000000000001 /* MailService.swift */; };
 		A1000019000000000000000000000001 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000020000000000000000000000001 /* Models.swift */; };
 		A1000021000000000000000000000001 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000022000000000000000000000001 /* ThemeManager.swift */; };
+		A1000023000000000000000000000002 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A1000024000000000000000000000002 /* Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		A1000018000000000000000000000001 /* MailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailService.swift; sourceTree = "<group>"; };
 		A1000020000000000000000000000001 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		A1000022000000000000000000000001 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		A1000024000000000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +65,7 @@
 				A1000029000000000000000000000001 /* Services */,
 				A1000030000000000000000000000001 /* Models */,
 				A1000006000000000000000000000001 /* Assets.xcassets */,
+				A1000024000000000000000000000002 /* Info.plist */,
 				A1000031000000000000000000000001 /* Preview Content */,
 			);
 			path = ZeroMail;
@@ -172,6 +175,7 @@
 			files = (
 				A1000007000000000000000000000001 /* Preview Assets.xcassets in Resources */,
 				A1000005000000000000000000000001 /* Assets.xcassets in Resources */,
+				A1000023000000000000000000000002 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
