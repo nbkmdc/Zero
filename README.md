@@ -9,6 +9,8 @@
 
 An Open-Source Gmail Alternative for the Future of Email
 
+<!-- Verification comment added by Devin to test repo access and PR workflow -->
+
 ## What is Zero?
 
 Zero is an open-source AI email solution that gives users the power to **self-host** their own email app while also integrating external services like Gmail and other email providers. Our goal is to modernize and improve emails through AI agents to truly modernize emails.
