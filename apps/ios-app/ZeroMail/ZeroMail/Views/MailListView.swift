@@ -248,7 +248,7 @@ struct ThreadRowView: View {
         let formatter = DateFormatter()
         let calendar = Calendar.current
         
-        if calendar.isToday(date) {
+        if calendar.isDate(date, inSameDayAs: Date()) {
             formatter.timeStyle = .short
             return formatter.string(from: date)
         } else if calendar.isDate(date, equalTo: Date(), toGranularity: .year) {
