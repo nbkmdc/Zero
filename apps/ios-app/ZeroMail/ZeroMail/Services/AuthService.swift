@@ -3,7 +3,7 @@ import Combine
 import AuthenticationServices
 
 @MainActor
-class AuthService: ObservableObject {
+class AuthService: NSObject, ObservableObject {
     @Published var isAuthenticated = false
     @Published var currentUser: User?
     @Published var isLoading = false
