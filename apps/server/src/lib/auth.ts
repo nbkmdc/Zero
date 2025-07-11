@@ -160,7 +160,7 @@ export const createAuth = () => {
         dubClient: dub,
       }),
       organization({
-        allowUserToCreateOrganization: async (user) => {
+        allowUserToCreateOrganization: async () => {
           // const subscription = await getSubscription(user.id)
           // return subscription.plan === "pro"
           return true;
@@ -185,7 +185,7 @@ export const createAuth = () => {
           console.log('[INVITE] sendInvitationEmail HOOK COMPLETED');
         },
         organizationCreation: {
-          beforeCreate: async ({ organization, user }, request) => {
+          beforeCreate: async ({ organization }) => {
             return {
               data: {
                 ...organization,
@@ -455,7 +455,7 @@ async function sendOrganizationInvitation({
   });
   try {
     await resend().emails.send({
-      from: '0.email <me@amritwt.me>',
+      from: '0.email <onboarding@0.email>',
       to: email,
       subject: `You have been invited to join ${teamName} on 0.email`,
       html: `
