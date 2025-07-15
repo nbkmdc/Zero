@@ -8,25 +8,25 @@ import {
   account,
   connection,
   note,
+  organizationDomain,
   session,
   user,
   userHotkeys,
   userSettings,
   writingStyleMatrix,
-  organizationDomain,
 } from './db/schema';
-import { env, WorkerEntrypoint, DurableObject, RpcTarget } from 'cloudflare:workers';
+import { DurableObject, env, RpcTarget, WorkerEntrypoint } from 'cloudflare:workers';
 import { EProviders, type ISubscribeBatch, type IThreadBatch } from './types';
+import { getZeroAgent, getZeroDB, verifyToken } from './lib/server-utils';
 import { oAuthDiscoveryMetadata } from 'better-auth/plugins';
-import { getZeroDB, verifyToken } from './lib/server-utils';
-import { eq, and, desc, asc, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { EWorkflowType, runWorkflow } from './pipelines';
 import { ThinkingMCP } from './lib/sequential-thinking';
+import { invitationRouter } from './routes/invitation';
 import { ZeroAgent, ZeroDriver } from './routes/agent';
 import { contextStorage } from 'hono/context-storage';
 import { defaultUserSettings } from './lib/schemas';
 import { createLocalJWKSet, jwtVerify } from 'jose';
-import { getZeroAgent } from './lib/server-utils';
 import { enableBrainFunction } from './lib/brain';
 import { trpcServer } from '@hono/trpc-server';
 import { agentsMiddleware } from 'hono-agents';
@@ -42,11 +42,6 @@ import { appRouter } from './trpc';
 import { cors } from 'hono/cors';
 import { Effect } from 'effect';
 import { Hono } from 'hono';
-import { orgRouter } from './routes/organization';
-import { invitationRouter } from './routes/invitation';
-
-const SENTRY_HOST = 'o4509328786915328.ingest.us.sentry.io';
-const SENTRY_PROJECT_IDS = new Set(['4509328795303936']);
 
 export class DbRpcDO extends RpcTarget {
   constructor(
@@ -526,24 +521,33 @@ class ZeroDB extends DurableObject<Env> {
     return await this.db.insert(organizationDomain).values(domain);
   }
   async deleteOrganizationDomain(organizationId: string, domain: string) {
-    return await this.db.delete(organizationDomain).where(and(
-      eq(organizationDomain.organizationId, organizationId),
-      eq(organizationDomain.domain, domain)
-    ));
+    return await this.db
+      .delete(organizationDomain)
+      .where(
+        and(
+          eq(organizationDomain.organizationId, organizationId),
+          eq(organizationDomain.domain, domain),
+        ),
+      );
   }
   async findOrganizationDomain(organizationId: string, domain: string) {
     return await this.db.query.organizationDomain.findFirst({
       where: and(
         eq(organizationDomain.organizationId, organizationId),
-        eq(organizationDomain.domain, domain)
+        eq(organizationDomain.domain, domain),
       ),
     });
   }
   async updateOrganizationDomain(organizationId: string, domain: string, update: any) {
-    return await this.db.update(organizationDomain).set(update).where(and(
-      eq(organizationDomain.organizationId, organizationId),
-      eq(organizationDomain.domain, domain)
-    ));
+    return await this.db
+      .update(organizationDomain)
+      .set(update)
+      .where(
+        and(
+          eq(organizationDomain.organizationId, organizationId),
+          eq(organizationDomain.domain, domain),
+        ),
+      );
   }
 }
 
@@ -586,7 +590,6 @@ export default class extends WorkerEntrypoint<typeof env> {
     .route('/ai', aiRouter)
     .route('/autumn', autumnApi)
     .route('/public', publicRouter)
-    .route('/organization', orgRouter)
     .route('/invitations', invitationRouter)
     .on(['GET', 'POST', 'OPTIONS'], '/auth/*', (c) => {
       return c.var.auth.handler(c.req.raw);
