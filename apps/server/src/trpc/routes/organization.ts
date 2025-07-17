@@ -853,4 +853,19 @@ export const organizationRouter = router({
         await conn.end();
       }
     }),
+  cancelPendingInvitation: privateProcedure
+    .input(z.object({ invitationId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { invitationId } = input;
+      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+      try {
+        await db
+          .update(invitation)
+          .set({ status: 'cancelled' })
+          .where(eq(invitation.id, invitationId));
+        return { success: true } as const;
+      } finally {
+        await conn.end();
+      }
+    }),
 });

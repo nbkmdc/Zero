@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTRPC } from '@/providers/query-provider';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail } from 'lucide-react';
 import { useEffect } from 'react';
@@ -18,20 +18,16 @@ export default function PendingInvites({ orgId, orgName }: { orgId: string; orgN
     enabled: !!orgId,
   });
 
-  // Cancel an invitation - TODO: Convert to TRPC when invitation router is available
-  async function cancelInvite(inviteId: string) {
-    if (!inviteId) return;
-    try {
-      await fetch(`${import.meta.env.VITE_PUBLIC_BACKEND_URL}/api/invitations/${inviteId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      toast.success('Invitation cancelled');
-      refetchInvites();
-    } catch (error: any) {
-      toast.error(`Failed to cancel invite: ${error.message}`);
-    }
-  }
+  // add mutation to cancel an invitation
+  const cancelInvitationMutation = useMutation(
+    trpc.organization.cancelPendingInvitation.mutationOptions(),
+  );
+
+  const handleCancelInvitation = async (inviteId: string) => {
+    await cancelInvitationMutation.mutateAsync({ invitationId: inviteId });
+    toast.success('Invitation cancelled');
+    refetchInvites();
+  };
 
   // Fetch invitations when org changes
   useEffect(() => {
@@ -64,7 +60,7 @@ export default function PendingInvites({ orgId, orgName }: { orgId: string; orgN
                 <p className="text-muted-foreground text-sm">{invite.status}</p>
                 <p className="text-muted-foreground text-sm">{invite.organizationId}</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => cancelInvite(invite.id)}>
+              <Button variant="outline" size="sm" onClick={() => handleCancelInvitation(invite.id)}>
                 Cancel
               </Button>
             </div>
