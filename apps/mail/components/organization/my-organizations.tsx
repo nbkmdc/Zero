@@ -1,10 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useTRPC } from '@/providers/query-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '../ui/button';
 import { Users } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function MyOrganizations({
   organizations,
@@ -15,32 +12,6 @@ export default function MyOrganizations({
   activeOrg: any;
   handleSetActiveOrg: (org: any) => void;
 }) {
-  const trpc = useTRPC();
-
-  const { data: defaultOrganizationId, refetch: refetchDefaultOrganizationId } = useQuery({
-    ...trpc.organization.getUsersDefaultOrganizationId.queryOptions(),
-  });
-
-  const setDefaultOrganizationMutation = useMutation(
-    trpc.organization.setDefaultOrganization.mutationOptions({
-      onSuccess: () => {
-        toast.success('Default organization set successfully');
-      },
-      onError: (error) => {
-        toast.error(`Failed to set default organization: ${error.message}`);
-      },
-    }),
-  );
-
-  const handleSetDefaultOrganization = async (org: any) => {
-    await setDefaultOrganizationMutation.mutateAsync({
-      organizationId: org.id,
-    });
-    refetchDefaultOrganizationId();
-  };
-
-  console.dir(defaultOrganizationId);
-
   return (
     <Card>
       <CardHeader>
@@ -55,10 +26,8 @@ export default function MyOrganizations({
           {organizations.map((org) => (
             <div
               key={org.id}
-              className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
-                activeOrg?.id === org.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:bg-accent'
+              className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                activeOrg?.id === org.id ? 'border-primary bg-primary/5' : 'border-border'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -75,6 +44,7 @@ export default function MyOrganizations({
                 <div>
                   <p className="font-medium">{org.name}</p>
                   <p className="text-muted-foreground text-sm">@{org.slug}</p>
+                  <p className="text-muted-foreground text-sm">{org.id}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -90,26 +60,9 @@ export default function MyOrganizations({
                       Set as Active
                     </Button>
                   )}
-                  {defaultOrganizationId?.defaultOrganizationId !== org.id && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSetDefaultOrganization(org);
-                      }}
-                    >
-                      Set as default
-                    </Button>
-                  )}
                 </div>
               </div>
-              <div>
-                {activeOrg?.id === org.id && <Badge variant="secondary">Active</Badge>}
-                {defaultOrganizationId?.defaultOrganizationId === org.id && (
-                  <Badge variant="outline">Default</Badge>
-                )}
-              </div>
+              <div>{activeOrg?.id === org.id && <Badge variant="secondary">Active</Badge>}</div>
               {/* <Badge variant="outline">{org.member?.role || 'Unknown'}</Badge> */}
             </div>
           ))}

@@ -7,15 +7,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Loader2, LogOut, Trash2, Users } from 'lucide-react';
 import { useTRPC } from '@/providers/query-provider';
-import { Users, Trash2, LogOut } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/lib/auth-client';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface MemberListProps {

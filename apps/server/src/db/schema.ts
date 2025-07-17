@@ -23,7 +23,6 @@ export const user = createTable('user', {
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
   defaultConnectionId: text('default_connection_id'),
-  defaultOrganizationId: text('default_organization_id').references(() => organization.id),
   activeOrganizationId: text('active_organization_id').references(() => organization.id),
   customPrompt: text('custom_prompt'),
   phoneNumber: text('phone_number').unique(),
