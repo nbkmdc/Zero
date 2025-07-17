@@ -785,4 +785,55 @@ export const organizationRouter = router({
         await conn.end();
       }
     }),
+  getUsersDefaultOrganizationId: privateProcedure.query(async ({ ctx }) => {
+    const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+    try {
+      const [data] = await db.select().from(user).where(eq(user.id, ctx.sessionUser.id));
+      return { defaultOrganizationId: data?.defaultOrganizationId } as const;
+    } finally {
+      await conn.end();
+    }
+  }),
+  setDefaultOrganization: privateProcedure
+    .input(z.object({ organizationId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { organizationId } = input;
+      const { sessionUser } = ctx;
+      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+      try {
+        await db
+          .update(user)
+          .set({ defaultOrganizationId: organizationId })
+          .where(eq(user.id, sessionUser.id));
+        return { success: true } as const;
+      } finally {
+        await conn.end();
+      }
+    }),
+
+  getUsersActiveOrganizationId: privateProcedure.query(async ({ ctx }) => {
+    const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+    try {
+      const [data] = await db.select().from(user).where(eq(user.id, ctx.sessionUser.id));
+      return { activeOrganizationId: data?.activeOrganizationId } as const;
+    } finally {
+      await conn.end();
+    }
+  }),
+  setActiveOrganization: privateProcedure
+    .input(z.object({ organizationId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { organizationId } = input;
+      const { sessionUser } = ctx;
+      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+      try {
+        await db
+          .update(user)
+          .set({ activeOrganizationId: organizationId })
+          .where(eq(user.id, sessionUser.id));
+        return { success: true } as const;
+      } finally {
+        await conn.end();
+      }
+    }),
 });
