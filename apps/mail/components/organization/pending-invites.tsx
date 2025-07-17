@@ -57,8 +57,6 @@ export default function PendingInvites({ orgId, orgName }: { orgId: string; orgN
               <div>
                 <p className="font-medium">{invite.email}</p>
                 <p className="text-muted-foreground text-sm">{invite.role}</p>
-                <p className="text-muted-foreground text-sm">{invite.status}</p>
-                <p className="text-muted-foreground text-sm">{invite.organizationId}</p>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleCancelInvitation(invite.id)}>
                 Cancel
