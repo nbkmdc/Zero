@@ -1,30 +1,22 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTRPC } from '@/providers/query-provider';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 export default function PendingInvites({ orgId, orgName }: { orgId: string; orgName: string }) {
-  // Invitations state
-  const [invites, setInvites] = useState<any[]>([]);
-  const [loadingInvites, setLoadingInvites] = useState(false);
-  // Fetch pending invitations - TODO: Convert to TRPC when invitation router is available
-  async function fetchInvites() {
-    if (!orgId) return;
-    setLoadingInvites(true);
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_PUBLIC_BACKEND_URL}/api/invitations?organizationId=${orgId}&status=pending`,
-        { credentials: 'include' },
-      );
-      const data = (await res.json()) as { invitations: any[] };
-      setInvites(data.invitations || []);
-    } catch (error) {
-      console.error('Failed to fetch invitations:', error);
-    } finally {
-      setLoadingInvites(false);
-    }
-  }
+  const trpc = useTRPC();
+
+  const {
+    data: invites,
+    isLoading: loadingInvites,
+    refetch: refetchInvites,
+  } = useQuery({
+    ...trpc.organization.listPendingInvitations.queryOptions({ organizationId: orgId }),
+    enabled: !!orgId,
+  });
 
   // Cancel an invitation - TODO: Convert to TRPC when invitation router is available
   async function cancelInvite(inviteId: string) {
@@ -35,7 +27,7 @@ export default function PendingInvites({ orgId, orgName }: { orgId: string; orgN
         credentials: 'include',
       });
       toast.success('Invitation cancelled');
-      fetchInvites();
+      refetchInvites();
     } catch (error: any) {
       toast.error(`Failed to cancel invite: ${error.message}`);
     }
@@ -43,7 +35,7 @@ export default function PendingInvites({ orgId, orgName }: { orgId: string; orgN
 
   // Fetch invitations when org changes
   useEffect(() => {
-    if (orgId) fetchInvites();
+    if (orgId) refetchInvites();
   }, [orgId]);
 
   return (
@@ -60,8 +52,8 @@ export default function PendingInvites({ orgId, orgName }: { orgId: string; orgN
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
           </div>
-        ) : invites.length > 0 ? (
-          invites.map((invite) => (
+        ) : invites && invites?.invitations?.length > 0 ? (
+          invites.invitations.map((invite) => (
             <div
               key={invite.id}
               className="hover:bg-accent flex items-center justify-between rounded-lg border p-3 transition-colors"
@@ -69,6 +61,8 @@ export default function PendingInvites({ orgId, orgName }: { orgId: string; orgN
               <div>
                 <p className="font-medium">{invite.email}</p>
                 <p className="text-muted-foreground text-sm">{invite.role}</p>
+                <p className="text-muted-foreground text-sm">{invite.status}</p>
+                <p className="text-muted-foreground text-sm">{invite.organizationId}</p>
               </div>
               <Button variant="outline" size="sm" onClick={() => cancelInvite(invite.id)}>
                 Cancel

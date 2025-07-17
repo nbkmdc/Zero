@@ -836,4 +836,21 @@ export const organizationRouter = router({
         await conn.end();
       }
     }),
+  listPendingInvitations: privateProcedure
+    .input(z.object({ organizationId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const { organizationId } = input;
+      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+      try {
+        const invitations = await db
+          .select()
+          .from(invitation)
+          .where(
+            and(eq(invitation.organizationId, organizationId), eq(invitation.status, 'pending')),
+          );
+        return { invitations } as const;
+      } finally {
+        await conn.end();
+      }
+    }),
 });
