@@ -61,10 +61,10 @@ export const activeDriverProcedure = activeConnectionProcedure.use(async ({ ctx,
       refreshToken: null,
     });
 
-    ctx.c.header(
-      'X-Zero-Redirect',
-      `/settings/connections?disconnectedConnectionId=${activeConnection.id}`,
-    );
+    // ctx.c.header(
+    //   'X-Zero-Redirect',
+    //   `/settings/connections?disconnectedConnectionId=${activeConnection.id}`,
+    // );
 
     throw new TRPCError({
       code: 'UNAUTHORIZED',

@@ -5,8 +5,8 @@ import { generateText, tool } from 'ai';
 import { colors, GmailSearchAssistantSystemPrompt } from '../../lib/prompts';
 import { anthropic } from '@ai-sdk/anthropic';
 import { env } from 'cloudflare:workers';
-import type { ZeroAgent } from '../chat';
 import { Tools } from '../../types';
+import type { ZeroAgent } from '.';
 import { z } from 'zod';
 
 type ModelTypes = 'summarize' | 'general' | 'chat' | 'vectorize';

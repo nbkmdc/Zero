@@ -1,5 +1,5 @@
-import { disableBrainFunction, getPrompts } from '../../lib/brain';
 import { EProviders, EPrompts, type ISubscribeBatch } from '../../types';
+import { disableBrainFunction, getPrompts } from '../../lib/brain';
 import { activeConnectionProcedure, router } from '../trpc';
 import { setSubscribedState } from '../../lib/utils';
 import { env } from 'cloudflare:workers';
@@ -49,7 +49,11 @@ export const brainRouter = router({
           },
         };
       }
-      return null;
+      return {
+        data: {
+          short: 'This is a summary'.repeat(10),
+        },
+      };
     }),
   getState: activeConnectionProcedure.query(async ({ ctx }) => {
     const connection = ctx.activeConnection;
