@@ -583,66 +583,6 @@ export const organizationRouter = router({
         await conn.end();
       }
     }),
-  listTeams: publicProcedure
-    .input(z.object({ organizationId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      const { organizationId } = input;
-      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
-      try {
-        const teams = await db.select().from(team).where(eq(team.organizationId, organizationId));
-        return { teams } as const;
-      } finally {
-        await conn.end();
-      }
-    }),
-  createTeam: privateProcedure
-    .input(z.object({ organizationId: z.string(), name: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      const { organizationId, name } = input;
-      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
-      try {
-        const id = nanoid();
-        await db.insert(team).values({
-          id,
-          name,
-          organizationId,
-          created_at: new Date(),
-          updated_at: new Date(),
-        });
-        return { success: true, id } as const;
-      } finally {
-        await conn.end();
-      }
-    }),
-  updateTeam: privateProcedure
-    .input(z.object({ organizationId: z.string(), teamId: z.string(), name: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      const { organizationId, teamId, name } = input;
-      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
-      try {
-        await db
-          .update(team)
-          .set({ name, updated_at: new Date() })
-          .where(and(eq(team.id, teamId), eq(team.organizationId, organizationId)));
-        return { success: true } as const;
-      } finally {
-        await conn.end();
-      }
-    }),
-  deleteTeam: privateProcedure
-    .input(z.object({ organizationId: z.string(), teamId: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      const { organizationId, teamId } = input;
-      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
-      try {
-        await db
-          .delete(team)
-          .where(and(eq(team.id, teamId), eq(team.organizationId, organizationId)));
-        return { success: true } as const;
-      } finally {
-        await conn.end();
-      }
-    }),
   getSettings: publicProcedure
     .input(z.object({ organizationId: z.string() }))
     .query(async ({ input, ctx }) => {

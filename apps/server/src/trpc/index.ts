@@ -1,4 +1,5 @@
 import { type inferRouterInputs, type inferRouterOutputs } from '@trpc/server';
+import { organizationRouter } from './routes/organization';
 import { cookiePreferencesRouter } from './routes/cookies';
 import { connectionsRouter } from './routes/connections';
 import { categoriesRouter } from './routes/categories';
@@ -10,12 +11,12 @@ import { labelsRouter } from './routes/label';
 import { notesRouter } from './routes/notes';
 import { brainRouter } from './routes/brain';
 import { userRouter } from './routes/user';
+import { teamRouter } from './routes/team';
 import { mailRouter } from './routes/mail';
 import { bimiRouter } from './routes/bimi';
 import type { HonoContext } from '../ctx';
 import { aiRouter } from './routes/ai';
 import { router } from './trpc';
-import { organizationRouter } from './routes/organization';
 
 export const appRouter = router({
   ai: aiRouter,
@@ -29,6 +30,7 @@ export const appRouter = router({
   mail: mailRouter,
   notes: notesRouter,
   organization: organizationRouter,
+  team: teamRouter,
   shortcut: shortcutRouter,
   settings: settingsRouter,
   user: userRouter,

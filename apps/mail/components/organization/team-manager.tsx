@@ -7,19 +7,14 @@ import { useTRPC } from '@/providers/query-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
 const schema = z.object({
   name: z.string().min(2, 'Team name is required'),
 });
-
-// const memberSchema = z.object({
-//   userId: z.string().min(1, 'User ID is required'),
-//   role: z.enum(['member', 'admin', 'owner']).default('member'),
-// });
 
 interface TeamManagerProps {
   orgId: string | undefined;
@@ -33,18 +28,7 @@ interface Team {
   updated_at: Date | null;
 }
 
-interface Member {
-  id: string;
-  userId: string;
-  role: string;
-  teamId: string | null;
-  name?: string | null;
-  email?: string | null;
-}
-
 export function TeamManager({ orgId }: TeamManagerProps) {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const trpc = useTRPC();
@@ -56,18 +40,8 @@ export function TeamManager({ orgId }: TeamManagerProps) {
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
 
-  // const {
-  //   register: registerMember,
-  //   handleSubmit: handleMemberSubmit,
-  //   reset: resetMember,
-  //   setValue: setMemberValue,
-  //   watch: watchMember,
-  //   formState: { errors: memberErrors },
-  // } = useForm<z.infer<typeof memberSchema>>({ resolver: zodResolver(memberSchema) });
-
-  // TRPC queries
   const { data: teamsData, refetch: refetchTeams } = useQuery({
-    ...trpc.organization.listTeams.queryOptions({ organizationId: orgId || '' }),
+    ...trpc.team.listTeams.queryOptions({ organizationId: orgId || '' }),
     enabled: !!orgId,
   });
 
@@ -76,25 +50,10 @@ export function TeamManager({ orgId }: TeamManagerProps) {
     enabled: !!orgId,
   });
 
-  // TRPC mutations
-  const createTeamMutation = useMutation(trpc.organization.createTeam.mutationOptions());
-  const updateTeamMutation = useMutation(trpc.organization.updateTeam.mutationOptions());
-  const deleteTeamMutation = useMutation(trpc.organization.deleteTeam.mutationOptions());
-  // const upsertMemberMutation = useMutation(trpc.organization.upsertMember.mutationOptions());
+  const createTeamMutation = useMutation(trpc.team.createTeam.mutationOptions());
+  const updateTeamMutation = useMutation(trpc.team.updateTeam.mutationOptions());
+  const deleteTeamMutation = useMutation(trpc.team.deleteTeam.mutationOptions());
   const updateMemberMutation = useMutation(trpc.organization.updateMember.mutationOptions());
-
-  // Update local state when data changes
-  useEffect(() => {
-    if (teamsData?.teams) {
-      setTeams(teamsData.teams);
-    }
-  }, [teamsData]);
-
-  useEffect(() => {
-    if (membersData?.members) {
-      setMembers(membersData.members);
-    }
-  }, [membersData]);
 
   async function onSubmit(values: z.infer<typeof schema>) {
     if (!orgId) return;
@@ -114,22 +73,6 @@ export function TeamManager({ orgId }: TeamManagerProps) {
       setLoading(false);
     }
   }
-
-  // async function onMemberSubmit(values: z.infer<typeof memberSchema>) {
-  //   if (!orgId) return;
-
-  //   try {
-  //     await upsertMemberMutation.mutateAsync({
-  //       organizationId: orgId,
-  //       ...values,
-  //     });
-  //     toast.success('Member added');
-  //     resetMember();
-  //     refetchMembers();
-  //   } catch (error: any) {
-  //     toast.error(error.message || 'Failed to add member');
-  //   }
-  // }
 
   async function deleteTeam(teamId: string) {
     if (!orgId) return;
@@ -189,11 +132,11 @@ export function TeamManager({ orgId }: TeamManagerProps) {
   }
 
   function getTeamMembers(teamId: string) {
-    return members.filter((m) => m.teamId === teamId);
+    return membersData?.members.filter((m) => m.teamId === teamId) || [];
   }
 
   function getUnassignedMembers() {
-    return members.filter((m) => !m.teamId);
+    return membersData?.members.filter((m) => !m.teamId) || [];
   }
 
   function EditableRow({ team }: { team: Team }) {
@@ -333,9 +276,7 @@ export function TeamManager({ orgId }: TeamManagerProps) {
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <div className="space-y-2">
-              {teams.map((t) => (
-                <EditableRow key={t.id} team={t} />
-              ))}
+              {teamsData?.teams.map((t) => <EditableRow key={t.id} team={t} />)}
             </div>
           )}
         </CardContent>

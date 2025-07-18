@@ -7,7 +7,14 @@ export const authClient = createAuthClient({
   fetchOptions: {
     credentials: 'include',
   },
-  plugins: [phoneNumberClient(), organizationClient()],
+  plugins: [
+    phoneNumberClient(),
+    organizationClient({
+      teams: {
+        enabled: true,
+      },
+    }),
+  ],
 });
 
 export const { signIn, signUp, signOut, useSession, getSession, $fetch } = authClient;
