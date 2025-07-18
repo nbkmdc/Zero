@@ -516,7 +516,7 @@ export function MailLayout() {
   return (
     <TooltipProvider delayDuration={0}>
       <PricingDialog />
-      <div className="rounded-inherit relative z-[5] flex p-0 md:mr-0.5 md:mt-1">
+      <div className="rounded-inherit relative z-[5] flex p-0 md:mr-0.5">
         <ResizablePanelGroup
           direction="horizontal"
           autoSaveId="mail-panel-layout"
@@ -528,7 +528,7 @@ export function MailLayout() {
               minSize={35}
               maxSize={35}
               className={cn(
-                `bg-panelLight dark:bg-panelDark mb-1 w-fit shadow-sm md:mr-[3px] md:rounded-2xl lg:flex lg:h-[calc(100dvh-8px)] lg:shadow-sm`,
+                `bg-panelLight dark:bg-panelDark w-fit shadow-sm lg:flex lg:h-[calc(100dvh-1px)] lg:shadow-sm`,
                 isDesktop && threadId && 'hidden lg:block',
               )}
               onMouseEnter={handleMailListMouseEnter}
@@ -555,7 +555,7 @@ export function MailLayout() {
           {isDesktop && threadId && (
             <ResizablePanel
               className={cn(
-                'bg-panelLight dark:bg-panelDark mb-1 mr-0.5 w-fit rounded-2xl shadow-sm lg:h-[calc(100dvh-8px)]',
+                'bg-panelLight dark:bg-panelDark w-fit  lg:h-[calc(100dvh-4px)]',
                 // Only show on md screens and larger when there is a threadId
                 !threadId && 'hidden lg:block',
               )}

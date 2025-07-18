@@ -24,6 +24,14 @@ export interface EnhancedShortcut extends Shortcut {
 }
 
 /**
+ * Safely check if the user is on a Mac platform
+ * Returns false during SSR when navigator is not available
+ */
+function isMacPlatform(): boolean {
+  return typeof navigator !== 'undefined' && navigator.platform?.includes('Mac') === true;
+}
+
+/**
  * Convert key codes to user-friendly display keys using keyboard layout mapping
  */
 export function getDisplayKeysForShortcut(shortcut: Shortcut): string[] {
@@ -33,14 +41,14 @@ export function getDisplayKeysForShortcut(shortcut: Shortcut): string[] {
     // Handle special modifiers first
     switch (key.toLowerCase()) {
       case 'mod':
-        return navigator.platform.includes('Mac') ? '⌘' : 'Ctrl';
+        return isMacPlatform() ? '⌘' : 'Ctrl';
       case 'meta':
         return '⌘';
       case 'ctrl':
       case 'control':
         return 'Ctrl';
       case 'alt':
-        return navigator.platform.includes('Mac') ? '⌥' : 'Alt';
+        return isMacPlatform() ? '⌥' : 'Alt';
       case 'shift':
         return '⇧';
       case 'escape':

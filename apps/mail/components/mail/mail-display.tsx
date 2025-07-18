@@ -1260,7 +1260,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             className="flex cursor-pointer flex-col pb-2 transition-all duration-200"
             onClick={toggleCollapse}
           >
-            <div className="mt-3 flex w-full items-start justify-between gap-4 px-4">
+            <div className="mt-3 flex w-full items-start justify-between gap-4">
               <div className="flex w-full justify-center gap-4">
                 <BimiAvatar
                   email={emailData?.sender?.email}
