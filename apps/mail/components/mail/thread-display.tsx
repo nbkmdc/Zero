@@ -816,16 +816,16 @@ export function ThreadDisplay() {
             </ThreadActionButton>
           </DropdownMenu>
         </div>
-        <div className="max-w-2xl mx-auto h-full flex flex-col">
+        <div className="w-full md:w-[70%] h-full flex flex-col ml-4">
           <div
             className={cn(
-              'flex flex-shrink-0 items-center justify-between px-1 pt-3',
+              'flex flex-shrink-0 items-center justify-between pt-1 px-3',
               isMobile && 'bg-panelLight dark:bg-panelDark sticky top-0 z-10 mt-2',
             )}
           >
             <div className="flex w-full items-center gap-2">
               <span className="inline-flex items-center gap-2 font-medium text-black dark:text-white">
-                <span className="text-2xl font-semibold">
+                <span className="lg:text-2xl font-semibold">
                   {emailData?.latest?.subject}{' '}
                   <span className="text-muted-foreground dark:text-[#8C8C8C]">
                     {/* {emailData?.totalReplies &&
@@ -1013,7 +1013,7 @@ export function ThreadDisplay() {
               )}
           </div>
         </div>
-        {/* <div className="w-1/2"></div> */}
+        <div className="hidden md:block md:w-[30%]"></div>
       </div>
     </div>
   );
