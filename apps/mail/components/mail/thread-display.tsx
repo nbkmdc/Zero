@@ -20,35 +20,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { EmptyStateIcon } from '../icons/empty-state-svg';
-
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOptimisticThreadState } from '@/components/mail/optimistic-thread-state';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
+import MailDisplay, { MailDisplayLabels } from './mail-display';
 import { focusedIndexAtom } from '@/hooks/use-mail-navigation';
-
 import { type ThreadDestination } from '@/lib/thread-actions';
 import { handleUnsubscribe } from '@/lib/email-utils.client';
+import { ChevronDown, ChevronUp, Inbox } from 'lucide-react';
 import { useThread, useThreads } from '@/hooks/use-threads';
 import { useAISidebar } from '@/components/ui/ai-sidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { ParsedMessage, Attachment } from '@/types';
-import { MailDisplaySkeleton } from './mail-skeleton';
 import { useTRPC } from '@/providers/query-provider';
+import { useThreadLabels } from '@/hooks/use-labels';
 import { useMutation } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
+import { RenderLabels } from './render-labels';
 import { cleanHtml } from '@/lib/email-utils';
-import { useParams } from 'react-router';
-
 import ReplyCompose from './reply-composer';
 import { NotesPanel } from './note-panel';
 import { cn, FOLDERS } from '@/lib/utils';
+import type { Attachment } from '@/types';
 import { m } from '@/paraglide/messages';
-import MailDisplay from './mail-display';
-
-import { Inbox } from 'lucide-react';
+import { useParams } from 'react-router';
 import { useQueryState } from 'nuqs';
 import { format } from 'date-fns';
 import { useAtom } from 'jotai';
@@ -63,60 +59,6 @@ const cleanNameDisplay = (name?: string) => {
   if (!name) return '';
   return name.replace(/["<>]/g, '');
 };
-
-interface ThreadDisplayProps {
-  threadParam?: any;
-  onClose?: () => void;
-  isMobile?: boolean;
-  messages?: ParsedMessage[];
-  id?: string;
-}
-
-export function ThreadDemo({ messages, isMobile }: ThreadDisplayProps) {
-  const isFullscreen = false;
-  return (
-    <div
-      className={cn(
-        'flex flex-col',
-        isFullscreen ? 'h-screen' : isMobile ? 'h-full' : 'h-[calc(100dvh-2rem)]',
-      )}
-    >
-      <div
-        className={cn(
-          'bg-offsetLight dark:bg-offsetDark relative flex flex-col overflow-hidden transition-all duration-300',
-          isMobile ? 'h-full' : 'h-full',
-          !isMobile && !isFullscreen && 'rounded-r-lg',
-          isFullscreen ? 'fixed inset-0 z-50' : '',
-        )}
-      >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ScrollArea className="flex-1" type="scroll">
-            <div className="pb-4">
-              {[...(messages || [])].reverse().map((message, index) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    'transition-all duration-200',
-                    index > 0 && 'border-border border-t',
-                  )}
-                >
-                  <MailDisplay
-                    demo
-                    emailData={message}
-                    isFullscreen={isFullscreen}
-                    isMuted={false}
-                    isLoading={false}
-                    index={index}
-                  />
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ThreadActionButton({
   icon: Icon,
@@ -157,6 +99,11 @@ function ThreadActionButton({
     </TooltipProvider>
   );
 }
+
+const Separator = () => (
+  <div className="dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full bg-[#E7E7E7]" />
+);
+
 const isFullscreen = false;
 export function ThreadDisplay() {
   const isMobile = useIsMobile();
@@ -724,326 +671,284 @@ export function ThreadDisplay() {
     }
   }, [mode, activeReplyId]);
 
+  const { labels: threadLabels } = useThreadLabels(
+    emailData?.labels ? emailData.labels.map((l) => l.id) : [],
+  );
+
   return (
-    <div
-      className={cn(
-        'flex flex-col',
-        isFullscreen ? 'h-screen' : isMobile ? 'h-full' : 'h-[calc(100dvh-19px)] rounded-xl',
-      )}
-    >
+    <div className={cn('flex', isMobile ? 'h-full' : 'h-[calc(100dvh-19px)] rounded-xl')}>
       <div
         className={cn(
-          'bg-panelLight dark:bg-panelDark relative flex flex-col overflow-hidden rounded-xl transition-all duration-300',
-          isMobile ? 'h-full' : 'h-full',
-          !isMobile && !isFullscreen && 'rounded-r-lg',
-          isFullscreen ? 'fixed inset-0 z-50' : '',
+          'bg-panelLight dark:bg-panelDark relative flex w-full overflow-hidden rounded-xl transition-all duration-300',
+          'h-full',
+          !isMobile && 'rounded-r-lg',
         )}
       >
-        {!id ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="flex flex-col items-center justify-center gap-2 text-center">
-              <EmptyStateIcon width={200} height={200} />
-              <div className="mt-4">
-                <p className="text-lg">It's empty here</p>
-                <p className="text-md text-muted-foreground dark:text-white/50">
-                  Choose an email to view details
-                </p>
-                <div className="mt-4 grid grid-cols-1 gap-2 xl:grid-cols-2">
-                  <button
-                    onClick={toggleAISidebar}
-                    className="inline-flex h-7 items-center justify-center gap-0.5 overflow-hidden rounded-lg border bg-white px-2 dark:border-none dark:bg-[#313131]"
-                  >
-                    <Sparkles className="mr-1 h-3.5 w-3.5 fill-[#959595]" />
-                    <div className="flex items-center justify-center gap-2.5 px-0.5">
-                      <div className="text-base-gray-950 justify-start text-sm leading-none">
-                        Zero chat
-                      </div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setIsComposeOpen('true')}
-                    className="inline-flex h-7 items-center justify-center gap-0.5 overflow-hidden rounded-lg border bg-white px-2 dark:border-none dark:bg-[#313131]"
-                  >
-                    <Mail className="mr-1 h-3.5 w-3.5 fill-[#959595]" />
-                    <div className="flex items-center justify-center gap-2.5 px-0.5">
-                      <div className="dark:text-base-gray-950 justify-start text-sm leading-none">
-                        Send email
-                      </div>
-                    </div>
-                  </button>
-                </div>
+        <div className="">
+          <ThreadActionButton
+            icon={X}
+            label={m['common.actions.close']()}
+            onClick={handleClose}
+            className="hidden md:flex"
+          />
+          <ThreadActionButton
+            icon={ChevronUp}
+            label="Previous email"
+            onClick={handlePrevious}
+            className="hidden md:flex"
+          />
+          <ThreadActionButton
+            icon={ChevronDown}
+            label="Next email"
+            onClick={handleNext}
+            className="hidden md:flex"
+          />
+        </div>
+        <div className="w-1/2">
+          <div
+            className={cn(
+              'flex flex-shrink-0 items-center justify-between px-1 pt-1',
+              isMobile && 'bg-panelLight dark:bg-panelDark sticky top-0 z-10 mt-2',
+            )}
+          >
+            <div className="flex w-full items-center gap-2">
+              <span className="inline-flex items-center gap-2 font-medium text-black dark:text-white">
+                <span>
+                  {emailData?.latest?.subject}{' '}
+                  <span className="text-muted-foreground dark:text-[#8C8C8C]">
+                    {emailData?.totalReplies &&
+                      emailData.totalReplies > 1 &&
+                      `[${emailData.totalReplies}]`}
+                  </span>
+                </span>
+              </span>
+
+              <div className="w0f mt-2 flex items-center gap-2">
+                {emailData?.labels?.length ? (
+                  <MailDisplayLabels labels={emailData?.labels.map((t) => t.name) || []} />
+                ) : null}
+                {/* {emailData?.labels?.length ? (
+                  <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
+                ) : null} */}
+                {/* <RenderLabels labelzs={emailData?.labels || []} /> */}
+                {/* {threadLabels.length ? (
+                  <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
+                ) : null} */}
+                {/* <div className="text-muted-foreground flex items-center gap-2 text-sm dark:text-[#8C8C8C]">
+                  {(() => {
+                    if (people.length <= 2) {
+                      return people.map(renderPerson);
+                    }
+
+                    // Only show first two people plus count if we have at least two people
+                    const firstPerson = people[0];
+                    const secondPerson = people[1];
+
+                    if (firstPerson && secondPerson) {
+                      return (
+                        <>
+                          {renderPerson(firstPerson)}
+                          {renderPerson(secondPerson)}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm">
+                                +{people.length - 2} {people.length - 2 === 1 ? 'other' : 'others'}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="flex flex-col gap-1">
+                              {people.slice(2).map((person) => (
+                                <div key={person.email}>{renderPerson(person)}</div>
+                              ))}
+                            </TooltipContent>
+                          </Tooltip>
+                        </>
+                      );
+                    }
+
+                    return null;
+                  })()}
+                </div> */}
               </div>
+              {/* {brainState?.enabled && <AiSummary />}
+              {threadAttachments && threadAttachments.length > 0 && (
+                <ThreadAttachments attachments={threadAttachments} />
+              )} */}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMode('replyAll');
+                  setActiveReplyId(emailData?.latest?.id ?? '');
+                }}
+                className="inline-flex h-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white px-1.5 dark:border-none dark:bg-[#313131]"
+              >
+                <Reply className="fill-muted-foreground dark:fill-[#9B9B9B]" />
+                <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
+                  <div className="justify-start whitespace-nowrap text-sm leading-none text-black dark:text-white">
+                    {m['common.threadDisplay.replyAll']()}
+                  </div>
+                </div>
+              </button>
+              <NotesPanel threadId={id} />
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleToggleStar}
+                      className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg bg-white dark:bg-[#313131]"
+                    >
+                      <Star
+                        className={cn(
+                          'ml-[2px] mt-[2.4px] h-5 w-5',
+                          isStarred
+                            ? 'fill-yellow-400 stroke-yellow-400'
+                            : 'fill-transparent stroke-[#9D9D9D] dark:stroke-[#9D9D9D]',
+                        )}
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
+                    {isStarred
+                      ? m['common.threadDisplay.unstar']()
+                      : m['common.threadDisplay.star']()}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => moveThreadTo('archive')}
+                      className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg bg-white dark:bg-[#313131]"
+                    >
+                      <Archive className="fill-iconLight dark:fill-iconDark" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
+                    {m['common.threadDisplay.archive']()}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {!isInBin && (
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => moveThreadTo('bin')}
+                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border border-[#FCCDD5] bg-[#FDE4E9] dark:border-[#6E2532] dark:bg-[#411D23]"
+                      >
+                        <Trash className="fill-[#F43F5E]" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
+                      {m['common.mail.moveToBin']()}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg bg-white focus:outline-none focus:ring-0 dark:bg-[#313131]">
+                    <ThreeDots className="fill-iconLight dark:fill-iconDark" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-white dark:bg-[#313131]">
+                  {isInSpam || isInArchive || isInBin ? (
+                    <DropdownMenuItem onClick={() => moveThreadTo('inbox')}>
+                      <Inbox className="mr-2 h-4 w-4" />
+                      <span>{m['common.mail.moveToInbox']()}</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          printThread();
+                        }}
+                      >
+                        <Printer className="fill-iconLight dark:fill-iconDark mr-2 h-4 w-4" />
+                        <span>{m['common.threadDisplay.printThread']()}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => moveThreadTo('spam')}>
+                        <ArchiveX className="fill-iconLight dark:fill-iconDark mr-2" />
+                        <span>{m['common.threadDisplay.moveToSpam']()}</span>
+                      </DropdownMenuItem>
+                      {emailData.latest?.listUnsubscribe ||
+                      emailData.latest?.listUnsubscribePost ? (
+                        <DropdownMenuItem onClick={handleUnsubscribeProcess}>
+                          <Folders className="fill-iconLight dark:fill-iconDark mr-2" />
+                          <span>{m['common.mailDisplay.unsubscribe']()}</span>
+                        </DropdownMenuItem>
+                      ) : null}
+                    </>
+                  )}
+                  {!isImportant && (
+                    <DropdownMenuItem onClick={handleToggleImportant}>
+                      <Lightning className="fill-iconLight dark:fill-iconDark mr-2" />
+                      {m['common.mail.markAsImportant']()}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-        ) : !emailData || isLoading ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <ScrollArea className="h-full flex-1" type="auto">
+          <div className={cn('flex min-h-0 flex-1 flex-col', isMobile && 'h-full')}>
+            <ScrollArea
+              className={cn('flex-1', isMobile ? 'h-[calc(100%-1px)]' : 'h-full')}
+              type="auto"
+            >
               <div className="pb-4">
-                <MailDisplaySkeleton isFullscreen={isFullscreen} />
+                {(emailData.messages || []).map((message, index) => {
+                  const isLastMessage = index === emailData.messages.length - 1;
+                  const isReplyingToThisMessage = mode && activeReplyId === message.id;
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={cn(
+                        'transition-all duration-200',
+                        index > 0 && 'border-border border-t',
+                      )}
+                    >
+                      <MailDisplay
+                        emailData={message}
+                        isFullscreen={isFullscreen}
+                        isMuted={false}
+                        isLoading={false}
+                        index={index}
+                        totalEmails={emailData?.totalReplies}
+                        threadAttachments={index === 0 ? allThreadAttachments : undefined}
+                      />
+                      {/* Inline Reply Compose for non-last messages */}
+                      {isReplyingToThisMessage && !isLastMessage && (
+                        <div className="px-4 py-2" id={`reply-composer-${message.id}`}>
+                          <ReplyCompose messageId={message.id} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </ScrollArea>
-          </div>
-        ) : (
-          <>
-            <div
-              className={cn(
-                'flex flex-shrink-0 items-center px-1 pb-[10px] md:px-3 md:pb-[11px] md:pt-[12px]',
-                isMobile && 'bg-panelLight dark:bg-panelDark sticky top-0 z-10 mt-2',
-              )}
-            >
-              <div className="flex flex-1 items-center gap-2">
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={handleClose}
-                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md hover:bg-white md:hidden dark:hover:bg-[#313131]"
-                      >
-                        <X className="fill-iconLight dark:fill-iconDark h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                      {m['common.actions.close']()}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <ThreadActionButton
-                  icon={X}
-                  label={m['common.actions.close']()}
-                  onClick={handleClose}
-                  className="hidden md:flex"
-                />
-                {/* <ThreadSubject subject={emailData.latest?.subject} /> */}
-                <div className="dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full bg-[#E7E7E7]" />{' '}
-                <div className="flex items-center gap-1">
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={handlePrevious}
-                          className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md hover:bg-white md:hidden dark:hover:bg-[#313131]"
-                        >
-                          <ChevronLeft className="fill-iconLight dark:fill-iconDark h-3.5 w-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                        Previous email
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <ThreadActionButton
-                    icon={ChevronLeft}
-                    label="Previous email"
-                    onClick={handlePrevious}
-                    className="hidden md:flex"
-                  />
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={handleNext}
-                          className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-md hover:bg-white md:hidden dark:hover:bg-[#313131]"
-                        >
-                          <ChevronRight className="fill-iconLight dark:fill-iconDark h-3.5 w-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                        Next email
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <ThreadActionButton
-                    icon={ChevronRight}
-                    label="Next email"
-                    onClick={handleNext}
-                    className="hidden md:flex"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMode('replyAll');
-                    setActiveReplyId(emailData?.latest?.id ?? '');
-                  }}
-                  className="inline-flex h-7 items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white px-1.5 dark:border-none dark:bg-[#313131]"
+
+            {/* Sticky Reply Compose at Bottom - Only for last message */}
+            {mode &&
+              activeReplyId &&
+              activeReplyId === emailData.messages[emailData.messages.length - 1]?.id && (
+                <div
+                  className="border-border bg-panelLight dark:bg-panelDark sticky bottom-0 z-10 border-t px-4 py-2"
+                  id={`reply-composer-${activeReplyId}`}
                 >
-                  <Reply className="fill-muted-foreground dark:fill-[#9B9B9B]" />
-                  <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
-                    <div className="justify-start whitespace-nowrap text-sm leading-none text-black dark:text-white">
-                      {m['common.threadDisplay.replyAll']()}
-                    </div>
-                  </div>
-                </button>
-                <NotesPanel threadId={id} />
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={handleToggleStar}
-                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg bg-white dark:bg-[#313131]"
-                      >
-                        <Star
-                          className={cn(
-                            'ml-[2px] mt-[2.4px] h-5 w-5',
-                            isStarred
-                              ? 'fill-yellow-400 stroke-yellow-400'
-                              : 'fill-transparent stroke-[#9D9D9D] dark:stroke-[#9D9D9D]',
-                          )}
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                      {isStarred
-                        ? m['common.threadDisplay.unstar']()
-                        : m['common.threadDisplay.star']()}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => moveThreadTo('archive')}
-                        className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg bg-white dark:bg-[#313131]"
-                      >
-                        <Archive className="fill-iconLight dark:fill-iconDark" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                      {m['common.threadDisplay.archive']()}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                {!isInBin && (
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => moveThreadTo('bin')}
-                          className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg border border-[#FCCDD5] bg-[#FDE4E9] dark:border-[#6E2532] dark:bg-[#411D23]"
-                        >
-                          <Trash className="fill-[#F43F5E]" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                        {m['common.mail.moveToBin']()}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden rounded-lg bg-white focus:outline-none focus:ring-0 dark:bg-[#313131]">
-                      <ThreeDots className="fill-iconLight dark:fill-iconDark" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white dark:bg-[#313131]">
-                    {/* <DropdownMenuItem onClick={() => setIsFullscreen(!isFullscreen)}>
-                      <Expand className="fill-iconLight dark:fill-iconDark mr-2" />
-                      <span>
-                        {isFullscreen
-                          ? t('common.threadDisplay.exitFullscreen')
-                          : t('common.threadDisplay.enterFullscreen')}
-                      </span>
-                    </DropdownMenuItem> */}
-
-                    {isInSpam || isInArchive || isInBin ? (
-                      <DropdownMenuItem onClick={() => moveThreadTo('inbox')}>
-                        <Inbox className="mr-2 h-4 w-4" />
-                        <span>{m['common.mail.moveToInbox']()}</span>
-                      </DropdownMenuItem>
-                    ) : (
-                      <>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            printThread();
-                          }}
-                        >
-                          <Printer className="fill-iconLight dark:fill-iconDark mr-2 h-4 w-4" />
-                          <span>{m['common.threadDisplay.printThread']()}</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => moveThreadTo('spam')}>
-                          <ArchiveX className="fill-iconLight dark:fill-iconDark mr-2" />
-                          <span>{m['common.threadDisplay.moveToSpam']()}</span>
-                        </DropdownMenuItem>
-                        {emailData.latest?.listUnsubscribe ||
-                        emailData.latest?.listUnsubscribePost ? (
-                          <DropdownMenuItem onClick={handleUnsubscribeProcess}>
-                            <Folders className="fill-iconLight dark:fill-iconDark mr-2" />
-                            <span>{m['common.mailDisplay.unsubscribe']()}</span>
-                          </DropdownMenuItem>
-                        ) : null}
-                      </>
-                    )}
-                    {!isImportant && (
-                      <DropdownMenuItem onClick={handleToggleImportant}>
-                        <Lightning className="fill-iconLight dark:fill-iconDark mr-2" />
-                        {m['common.mail.markAsImportant']()}
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-            <div className={cn('flex min-h-0 flex-1 flex-col', isMobile && 'h-full')}>
-              <ScrollArea
-                className={cn('flex-1', isMobile ? 'h-[calc(100%-1px)]' : 'h-full')}
-                type="auto"
-              >
-                <div className="pb-4">
-                  {(emailData.messages || []).map((message, index) => {
-                    const isLastMessage = index === emailData.messages.length - 1;
-                    const isReplyingToThisMessage = mode && activeReplyId === message.id;
-
-                    return (
-                      <div
-                        key={message.id}
-                        className={cn(
-                          'transition-all duration-200',
-                          index > 0 && 'border-border border-t',
-                        )}
-                      >
-                        <MailDisplay
-                          emailData={message}
-                          isFullscreen={isFullscreen}
-                          isMuted={false}
-                          isLoading={false}
-                          index={index}
-                          totalEmails={emailData?.totalReplies}
-                          threadAttachments={index === 0 ? allThreadAttachments : undefined}
-                        />
-                        {/* Inline Reply Compose for non-last messages */}
-                        {isReplyingToThisMessage && !isLastMessage && (
-                          <div className="px-4 py-2" id={`reply-composer-${message.id}`}>
-                            <ReplyCompose messageId={message.id} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  <ReplyCompose messageId={activeReplyId} />
                 </div>
-              </ScrollArea>
-
-              {/* Sticky Reply Compose at Bottom - Only for last message */}
-              {mode &&
-                activeReplyId &&
-                activeReplyId === emailData.messages[emailData.messages.length - 1]?.id && (
-                  <div
-                    className="border-border bg-panelLight dark:bg-panelDark sticky bottom-0 z-10 border-t px-4 py-2"
-                    id={`reply-composer-${activeReplyId}`}
-                  >
-                    <ReplyCompose messageId={activeReplyId} />
-                  </div>
-                )}
-            </div>
-          </>
-        )}
+              )}
+          </div>
+        </div>
+        <div className="w-1/2"></div>
       </div>
     </div>
   );

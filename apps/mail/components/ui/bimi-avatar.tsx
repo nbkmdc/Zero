@@ -22,8 +22,8 @@ interface BimiAvatarProps {
 export const BimiAvatar = ({
   email,
   name,
-  className = 'h-8 w-8 rounded-full border dark:border-none',
-  fallbackClassName = 'rounded-full bg-[#FFFFFF] font-bold text-[#9F9F9F] dark:bg-[#373737]',
+  className = 'h-8 w-8 rounded border dark:border-none',
+  fallbackClassName = 'rounded bg-[#FFFFFF] font-bold text-[#9F9F9F] dark:bg-[#373737]',
   onImageError,
 }: BimiAvatarProps) => {
   const trpc = useTRPC();
@@ -65,19 +65,19 @@ export const BimiAvatar = ({
     <Avatar className={className}>
       {bimiData?.logo?.svgContent && !isLoading ? (
         <div
-          className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white dark:bg-[#373737]"
+          className="flex h-full w-full items-center justify-center overflow-hidden rounded bg-white dark:bg-[#373737]"
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(bimiData.logo.svgContent) }}
         />
       ) : fallbackImageSrc && !useDefaultFallback ? (
         <AvatarImage
-          className="rounded-full bg-[#FFFFFF] dark:bg-[#373737]"
+          className="rounded bg-[#FFFFFF] dark:bg-[#373737]"
           src={fallbackImageSrc}
           alt={name || email}
           onError={handleFallbackImageError}
         />
       ) : getEmailLogo(email) ? (
         <AvatarImage
-          className="rounded-full bg-[#FFFFFF] dark:bg-[#373737]"
+          className="rounded bg-[#FFFFFF] dark:bg-[#373737]"
           src={getEmailLogo(email)}
           alt={name || email}
           onError={handleFallbackImageError}

@@ -3,13 +3,12 @@ import { OnboardingWrapper } from '@/components/onboarding';
 
 import { NotificationProvider } from '@/components/party';
 import { AppSidebar } from '@/components/ui/app-sidebar';
-import { Outlet, } from 'react-router';
-
+import { Outlet } from 'react-router';
 
 export default function MailLayout() {
   return (
     <HotkeyProviderWrapper>
-      <AppSidebar />
+      {/* <AppSidebar /> */}
       <div className="bg-sidebar dark:bg-sidebar w-full">
         <Outlet />
       </div>

@@ -215,32 +215,21 @@ const Thread = memo(
       if (!latestMessage || !getThreadData) return null;
 
       return (
-        <div
-          className={cn('select-none border-b md:my-1 md:border-none')}
-          onClick={onClick ? onClick(latestMessage) : undefined}
-          onMouseEnter={() => {
-            window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: idToUse } }));
-          }}
-          onMouseLeave={() => {
-            window.dispatchEvent(new CustomEvent('emailHover', { detail: { id: null } }));
-          }}
-        >
+        <div className={'select-none'} onClick={onClick ? onClick(latestMessage) : undefined}>
           <div
-            data-thread-id={idToUse}
-            key={idToUse}
+            data-thread-id={latestMessage.threadId ?? latestMessage.id}
+            key={latestMessage.threadId ?? latestMessage.id}
             className={cn(
-              'hover:bg-offsetLight hover:bg-primary/5 group relative mx-1 flex cursor-pointer flex-col items-start rounded-lg py-2 text-left text-sm transition-all hover:opacity-100',
-              (isMailSelected || isMailBulkSelected || isKeyboardFocused) &&
-                'border-border bg-primary/5 opacity-100',
+              'md:hover:bg-offsetLight md:hover:bg-primary/5 relative mx-2 flex cursor-pointer flex-col items-start rounded-lg border-transparent text-left text-sm transition-all md:mb-3 md:py-2',
+              (isMailSelected || isMailBulkSelected || isKeyboardFocused) && 'border-border',
               isKeyboardFocused && 'ring-primary/50',
-              'relative',
-              'group',
+              'group relative',
             )}
           >
             <div
               className={cn(
                 'dark:bg-panelDark absolute right-2 z-[25] flex -translate-y-1/2 items-center gap-1 rounded-xl border bg-white p-1 opacity-0 shadow-sm group-hover:opacity-100',
-                index === 0 ? 'top-4' : 'top-[-1]',
+                index === 0 ? 'top-4' : 'top-[-9px]',
               )}
             >
               <Tooltip>
@@ -290,7 +279,7 @@ const Thread = memo(
                   side={index === 0 ? 'bottom' : 'top'}
                   className="dark:bg-panelDark mb-1 bg-white"
                 >
-                  {m['common.mail.toggleImportant']()}
+                  {m['common.threadDisplay.archive']()}
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -338,179 +327,281 @@ const Thread = memo(
                 </Tooltip>
               ) : null}
             </div>
+            {/* Desktop Layout - md and larger */}
+            <div className="hidden w-full items-center justify-between gap-4 px-4 pl-5 md:flex">
+              <div
+                className={cn(
+                  'relative flex w-full items-center',
+                  getThreadData.hasUnread ? 'opacity-100' : 'opacity-50',
+                )}
+              >
+                {isMailBulkSelected && (
+                  <div
+                    className={cn(
+                      'top-[-3px] -ml-3 mr-[11px] flex h-[13px] w-[13px] items-center justify-center rounded border-2 border-[#484848] transition-colors',
+                      isMailBulkSelected && 'border-none bg-[#3B82F6]',
+                    )}
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      const threadId = latestMessage.threadId ?? message.id;
+                      setMail((prev: Config) => ({
+                        ...prev,
+                        bulkSelected: isMailBulkSelected
+                          ? prev.bulkSelected.filter((id: string) => id !== threadId)
+                          : [...prev.bulkSelected, threadId],
+                      }));
+                    }}
+                  >
+                    {isMailBulkSelected && (
+                      <Check className="text-panelLight dark:text-panelDark relative top-[0.5px] h-2 w-2" />
+                    )}
+                  </div>
+                )}
 
-            <div
-              className={`relative flex w-full items-center justify-between gap-4 px-4 ${displayUnread ? '' : 'opacity-60'}`}
-            >
-              <div>
-                {isMailBulkSelected ? (
-                  <Avatar
+                {/* <div className={cn('mr-2 flex-shrink-0')} onClick={handleToggleStar}>
+                  <Star2
                     className={cn(
-                      'h-8 w-8 rounded-full',
-                      displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
-                    )}
-                  >
-                    <div
-                      className="flex h-full w-full items-center justify-center rounded-full bg-[#006FFE] p-2 dark:bg-[#006FFE]"
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        setMail((prev: Config) => ({
-                          ...prev,
-                          bulkSelected: prev.bulkSelected.filter((id: string) => id !== idToUse),
-                        }));
-                      }}
-                    >
-                      <Check className="h-4 w-4 text-white" />
-                    </div>
-                  </Avatar>
-                ) : isGroupThread ? (
-                  <Avatar
-                    className={cn(
-                      'h-8 w-8 rounded-full',
-                      displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
-                    )}
-                  >
-                    <div className="flex h-full w-full items-center justify-center rounded-full bg-[#FFFFFF] p-2 dark:bg-[#373737]">
-                      <GroupPeople className="h-4 w-4" />
-                    </div>
-                  </Avatar>
-                ) : (
-                  <BimiAvatar
-                    email={latestMessage.sender.email}
-                    name={cleanName || latestMessage.sender.email}
-                    className={cn(
-                      'h-8 w-8 rounded-full',
-                      displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
+                      'h-4 w-4',
+                      displayStarred
+                        ? 'fill-yellow-400 stroke-yellow-400'
+                        : 'fill-transparent stroke-[#9D9D9D] dark:stroke-[#9D9D9D]',
                     )}
                   />
-                )}
-                {/* {displayUnread && !isMailSelected && !isFolderSent ? (
-                  <>
-                    <span className="absolute left-2 top-2 size-1.5 rounded bg-[#006FFE]" />
-                    <span className="absolute left-[11px] top-4 size-1 rounded bg-[#006FFE]" />
-                  </>
-                ) : null} */}
-              </div>
+                </div> */}
 
-              <div className="flex w-full justify-between">
-                <div className="w-full">
-                  <div className="flex w-full flex-row items-center justify-between">
-                    <div className="flex flex-row items-center gap-[4px]">
-                      <span
-                        className={cn(
-                          displayUnread && !isMailSelected ? 'font-bold' : 'font-medium',
-                          'text-md flex items-baseline gap-1 group-hover:opacity-100',
+                {/* Sender Name/Subject */}
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex w-[80px] max-w-[80px] flex-shrink-0 items-center lg:w-[150px] lg:max-w-[150px]">
+                      {isFolderSent ? (
+                        <span className="line-clamp-1 text-sm">
+                          {highlightText(latestMessage.subject, searchValue.highlight)}
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            'line-clamp-1 min-w-0 text-sm font-medium',
+                            hasDraft ? 'border-b-muted-foreground border-b border-dashed' : '',
+                          )}
+                        >
+                          {highlightText(
+                            cleanNameDisplay(latestMessage.sender.name) || '',
+                            searchValue.highlight,
+                          )}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Avatar */}
+                    <div className="mx-4 hidden flex-shrink-0 md:block">
+                      <Avatar className="h-5 w-5 rounded border dark:border-none">
+                        {isGroupThread ? (
+                          <div className="bg-muted flex h-full w-full items-center justify-center rounded dark:bg-[#373737]">
+                            <GroupPeople className="h-3 w-3" />
+                          </div>
+                        ) : (
+                          <>
+                            <BimiAvatar
+                              email={latestMessage.sender.email}
+                              name={cleanName || latestMessage.sender.email}
+                              className={cn('h-5 w-5 rounded')}
+                            />
+                          </>
                         )}
+                      </Avatar>
+                    </div>
+                    {/* Divider */}
+                    <div className="mx-4 h-4 w-[0.1px] flex-shrink-0 bg-black/20 dark:bg-[#2C2C2C]" />
+                    {/* Subject */}
+                    <div className="w-[200px] flex-shrink-0 md:max-w-[350px] lg:max-w-[400px] xl:w-[330px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 flex-1 items-center">
+                          <p className="truncate text-sm text-black dark:text-white">
+                            {highlightText(latestMessage.subject, searchValue.highlight)}
+                          </p>
+                        </div>
+                        {getThreadData.totalReplies > 1 && (
+                          <span className="w-[8px] flex-shrink-0 text-right text-xs text-[#6D6D6D] dark:text-[#8C8C8C]">
+                            {getThreadData.totalReplies}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="mx-4 hidden h-4 w-[0.1px] flex-shrink-0 bg-black/20 md:block dark:bg-[#2C2C2C]" />
+
+                  {/* Message Title */}
+                  <div className="hidden w-[50px] min-w-[50px] flex-1 justify-between md:flex">
+                    <p className="line-clamp-1 text-sm text-[#8C8C8C]">
+                      {latestMessage.title || ''}
+                    </p>
+                    {!isFolderSent && threadLabels && threadLabels.length >= 1 ? (
+                      <span className="ml-1 flex min-w-0 flex-shrink-0 items-center space-x-2">
+                        <RenderLabels labels={threadLabels} />
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mx-4 hidden h-4 w-[0.1px] flex-shrink-0 bg-black/20 md:block dark:bg-[#2C2C2C]" />
+
+                  {/* Date */}
+                  <div className="w-10 flex-shrink-0">
+                    {latestMessage.receivedOn && (
+                      <p className="text-nowrap text-xs font-normal text-[#6D6D6D] dark:text-[#8C8C8C]">
+                        {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Layout - smaller than md */}
+            <div className="w-full border-b md:hidden">
+              <div
+                className={cn(
+                  'hover:bg-primary/5 group relative my-2 flex cursor-pointer flex-col items-start rounded-lg py-2 text-left text-sm transition-all hover:opacity-100',
+                  (isMailSelected || isMailBulkSelected || isKeyboardFocused) && 'opacity-100',
+                  isKeyboardFocused && 'ring-primary/50',
+                  'relative',
+                  'group',
+                )}
+              >
+                <div className="relative flex w-full items-center justify-between gap-4 px-2">
+                  <div>
+                    <Avatar
+                      className={cn(
+                        'h-8 w-8 rounded-full',
+                        displayUnread && !isMailSelected && !isFolderSent ? '' : 'border',
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'flex h-full w-full items-center justify-center rounded-full bg-[#006FFE] p-2 dark:bg-[#006FFE]',
+                          {
+                            hidden: !isMailBulkSelected,
+                          },
+                        )}
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          setMail((prev: Config) => ({
+                            ...prev,
+                            bulkSelected: prev.bulkSelected.filter((id: string) => id !== idToUse),
+                          }));
+                        }}
                       >
-                        {isFolderSent ? (
+                        <Check className="h-4 w-4 text-white" />
+                      </div>
+                      {isGroupThread ? (
+                        <div className="flex h-full w-full items-center justify-center rounded-full bg-[#FFFFFF] p-2 dark:bg-[#373737]">
+                          <GroupPeople className="h-4 w-4" />
+                        </div>
+                      ) : (
+                        <>
+                          <BimiAvatar
+                            className="h-8 w-8 rounded-full bg-[#FFFFFF] dark:bg-[#373737]"
+                            email={latestMessage.sender.email}
+                            name={cleanName}
+                          />
+                        </>
+                      )}
+                    </Avatar>
+                  </div>
+
+                  <div className="flex w-full justify-between">
+                    <div className="w-full">
+                      <div className="flex w-full flex-row items-center justify-between">
+                        <div className="flex flex-row items-center gap-[4px]">
                           <span
                             className={cn(
-                              'overflow-hidden truncate text-sm md:max-w-[15ch] xl:max-w-[25ch]',
+                              displayUnread && !isMailSelected ? 'font-bold' : 'font-medium',
+                              'text-md flex items-baseline gap-1 group-hover:opacity-100',
+                            )}
+                          >
+                            {isFolderSent ? (
+                              <span
+                                className={cn(
+                                  'overflow-hidden truncate text-sm md:max-w-[15ch] xl:max-w-[25ch]',
+                                )}
+                              >
+                                {highlightText(latestMessage.subject, searchValue.highlight)}
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <span className={cn('line-clamp-1 overflow-hidden text-sm')}>
+                                  {highlightText(
+                                    cleanNameDisplay(latestMessage.sender.name) || '',
+                                    searchValue.highlight,
+                                  )}
+                                </span>
+                                {displayUnread && !isMailSelected && !isFolderSent ? (
+                                  <>
+                                    <span className="ml-0.5 size-2 rounded-full bg-[#006FFE]" />
+                                  </>
+                                ) : null}
+                              </div>
+                            )}{' '}
+                          </span>
+                          {getThreadData.totalReplies > 1 ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="rounded-md text-xs opacity-70">
+                                  [{getThreadData.totalReplies}]
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="p-1 text-xs">
+                                {m['common.mail.replies']({
+                                  count: getThreadData.totalReplies,
+                                })}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : null}
+                          <MailLabels labels={optimisticLabels} />
+                        </div>
+                        {latestMessage.receivedOn ? (
+                          <p
+                            className={cn(
+                              'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
+                              isMailSelected && 'opacity-100',
+                            )}
+                          >
+                            {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex justify-between">
+                        {isFolderSent ? (
+                          <p
+                            className={cn(
+                              'mt-1 line-clamp-1 max-w-[50ch] overflow-hidden text-sm text-[#8C8C8C] md:max-w-[25ch]',
+                            )}
+                          >
+                            {latestMessage.to.map((e) => e.email).join(', ')}
+                          </p>
+                        ) : (
+                          <p
+                            className={cn(
+                              'mt-1 line-clamp-1 w-[95%] min-w-0 overflow-hidden text-sm text-[#8C8C8C]',
                             )}
                           >
                             {highlightText(latestMessage.subject, searchValue.highlight)}
-                          </span>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <span className={cn('line-clamp-1 overflow-hidden text-sm')}>
-                              {highlightText(
-                                cleanNameDisplay(latestMessage.sender.name) || '',
-                                searchValue.highlight,
-                              )}
-                            </span>
-                            {displayUnread && !isMailSelected && !isFolderSent ? (
-                              <>
-                                <span className="ml-0.5 size-2 rounded-full bg-[#006FFE]" />
-                              </>
-                            ) : null}
+                          </p>
+                        )}
+                        {threadLabels && (
+                          <div className="mr-0 flex w-fit items-center justify-end gap-1">
+                            {!isFolderSent ? <RenderLabels labels={threadLabels} /> : null}
                           </div>
-                        )}{' '}
-                        {/* {!isFolderSent ? (
-                          <span className="hidden items-center space-x-2 md:flex">
-                            <RenderLabels labels={threadLabels} />
-                          </span>
-                        ) : null} */}
-                      </span>
-                      {getThreadData.totalReplies > 1 ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="rounded-md text-xs opacity-70">
-                              [{getThreadData.totalReplies}]
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent className="p-1 text-xs">
-                            {m['common.mail.replies']({ count: getThreadData.totalReplies })}
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : null}
-                      {hasDraft ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex items-center">
-                              <PencilCompose className="h-3 w-3 fill-blue-500 dark:fill-blue-400" />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent className="p-1 text-xs">Draft</TooltipContent>
-                        </Tooltip>
-                      ) : null}
-                      {/* {hasNotes ? (
-                        <span className="inline-flex items-center">
-                          <StickyNote className="h-3 w-3 fill-amber-500 stroke-amber-500 dark:fill-amber-400 dark:stroke-amber-400" />
-                        </span>
-                      ) : null} */}
-                      <MailLabels labels={optimisticLabels} />
-                    </div>
-                    {latestMessage.receivedOn ? (
-                      <p
-                        className={cn(
-                          'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
-                          isMailSelected && 'opacity-100',
                         )}
-                      >
-                        {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex justify-between">
-                    {isFolderSent ? (
-                      <p
-                        className={cn(
-                          'mt-1 line-clamp-1 max-w-[50ch] overflow-hidden text-sm text-[#8C8C8C] md:max-w-[25ch]',
-                        )}
-                      >
-                        {latestMessage.to.map((e) => e.email).join(', ')}
-                      </p>
-                    ) : (
-                      <p
-                        className={cn(
-                          'mt-1 line-clamp-1 w-[95%] min-w-0 overflow-hidden text-sm text-[#8C8C8C]',
-                        )}
-                      >
-                        {highlightText(latestMessage.subject, searchValue.highlight)}
-                      </p>
-                    )}
-                    {/* <div className="hidden md:flex">
-                      {getThreadData.labels ? <MailLabels labels={getThreadData.labels} /> : null}
-                    </div> */}
-                    {threadLabels && (
-                      <div className="mr-0 flex w-fit items-center justify-end gap-1">
-                        {!isFolderSent ? <RenderLabels labels={threadLabels} /> : null}
-                        {/* {getThreadData.labels ? <MailLabels labels={getThreadData.labels} /> : null} */}
                       </div>
-                    )}
+                      {emailContent && (
+                        <div className="text-muted-foreground mt-2 line-clamp-2 text-xs">
+                          {highlightText(emailContent, searchValue.highlight)}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {emailContent && (
-                    <div className="text-muted-foreground mt-2 line-clamp-2 text-xs">
-                      {highlightText(emailContent, searchValue.highlight)}
-                    </div>
-                  )}
-                  {/* {mainSearchTerm && (
-                    <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
-                      <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5">
-                        {mainSearchTerm}
-                      </span>
-                    </div>
-                  )} */}
                 </div>
               </div>
             </div>

@@ -166,7 +166,7 @@ type Props = {
   threadAttachments?: Attachment[];
 };
 
-const MailDisplayLabels = ({ labels }: { labels: string[] }) => {
+export const MailDisplayLabels = ({ labels }: { labels: string[] }) => {
   const visibleLabels = labels.filter(
     (label) => !['unread', 'inbox'].includes(label.toLowerCase()),
   );
@@ -1256,72 +1256,6 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
           />
         )}
         <div className="relative h-full overflow-y-auto">
-          <div className={cn('px-4', index === 0 && 'border-b py-4')}>
-            {index === 0 && (
-              <>
-                <span className="inline-flex items-center gap-2 font-medium text-black dark:text-white">
-                  <span>
-                    {emailData.subject}{' '}
-                    <span className="text-muted-foreground dark:text-[#8C8C8C]">
-                      {totalEmails && totalEmails > 1 && `[${totalEmails}]`}
-                    </span>
-                  </span>
-                </span>
-
-                <div className="mt-2 flex items-center gap-2">
-                  {emailData?.tags?.length ? (
-                    <MailDisplayLabels labels={emailData?.tags.map((t) => t.name) || []} />
-                  ) : null}
-                  {emailData?.tags?.length ? (
-                    <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
-                  ) : null}
-                  <RenderLabels labels={threadLabels} />
-                  {threadLabels.length ? (
-                    <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
-                  ) : null}
-                  <div className="text-muted-foreground flex items-center gap-2 text-sm dark:text-[#8C8C8C]">
-                    {(() => {
-                      if (people.length <= 2) {
-                        return people.map(renderPerson);
-                      }
-
-                      // Only show first two people plus count if we have at least two people
-                      const firstPerson = people[0];
-                      const secondPerson = people[1];
-
-                      if (firstPerson && secondPerson) {
-                        return (
-                          <>
-                            {renderPerson(firstPerson)}
-                            {renderPerson(secondPerson)}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="text-sm">
-                                  +{people.length - 2}{' '}
-                                  {people.length - 2 === 1 ? 'other' : 'others'}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent className="flex flex-col gap-1">
-                                {people.slice(2).map((person) => (
-                                  <div key={person.email}>{renderPerson(person)}</div>
-                                ))}
-                              </TooltipContent>
-                            </Tooltip>
-                          </>
-                        );
-                      }
-
-                      return null;
-                    })()}
-                  </div>
-                </div>
-                {brainState?.enabled && <AiSummary />}
-                {threadAttachments && threadAttachments.length > 0 && (
-                  <ThreadAttachments attachments={threadAttachments} />
-                )}
-              </>
-            )}
-          </div>
           <div
             className="flex cursor-pointer flex-col pb-2 transition-all duration-200"
             onClick={toggleCollapse}
