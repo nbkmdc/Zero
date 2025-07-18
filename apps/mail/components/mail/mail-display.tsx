@@ -158,7 +158,6 @@ type Props = {
   isLoading: boolean;
   index: number;
   totalEmails?: number;
-  demo?: boolean;
   subject?: string;
   onReply?: () => void;
   onReplyAll?: () => void;
@@ -260,7 +259,7 @@ const cleanNameDisplay = (name?: string) => {
   return name.trim();
 };
 
-const ThreadAttachments = ({ attachments }: { attachments: Attachment[] }) => {
+export const ThreadAttachments = ({ attachments }: { attachments: Attachment[] }) => {
   if (!attachments || attachments.length === 0) return null;
 
   const handleDownload = async (attachment: Attachment) => {
@@ -292,7 +291,7 @@ const ThreadAttachments = ({ attachments }: { attachments: Attachment[] }) => {
     <div className="mt-2 w-full">
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">
-          Thread Attachments <span className="text-[#8D8D8D]">[{attachments.length}]</span>
+          Attachments <span className="text-[#8D8D8D]">[{attachments.length}]</span>
         </span>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -314,38 +313,18 @@ const ThreadAttachments = ({ attachments }: { attachments: Attachment[] }) => {
   );
 };
 
-const AiSummary = () => {
+export const AiSummary = () => {
   const [threadId] = useQueryState('threadId');
-  const { data: summary, isLoading } = useSummary(threadId ?? null);
-  const [showSummary, setShowSummary] = useState(false);
+  const { data: summary } = useSummary(threadId ?? null);
 
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowSummary(!showSummary);
-  };
-
-  if (isLoading) return null;
-  if (!summary?.data.short?.length) return null;
-
-  return (
+  return summary?.data.short?.trim().length ? (
     <div
-      className="mt-2 max-w-3xl rounded-xl border border-[#8B5CF6] bg-white px-4 py-2 dark:bg-[#252525]"
+      className="mb-2 mt-2 max-w-3xl rounded-xl border border-[#8B5CF6] bg-white px-4 py-2 dark:bg-[#252525]"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex cursor-pointer items-center" onClick={handleToggle}>
-        <TextShimmer className="text-xs font-medium text-[#929292]">Summary</TextShimmer>
-
-        {!isLoading && (
-          <ChevronDown
-            className={`ml-1 h-2.5 w-2.5 fill-[#929292] transition-transform ${showSummary ? 'rotate-180' : ''}`}
-          />
-        )}
-      </div>
-      {showSummary && (
-        <Markdown markdownContainerStyles={{ fontSize: 15 }}>{summary?.data.short || ''}</Markdown>
-      )}
+      <Markdown markdownContainerStyles={{ fontSize: 15 }}>{summary?.data.short || ''}</Markdown>
     </div>
-  );
+  ) : null;
 };
 
 type ActionButtonProps = {
@@ -512,16 +491,7 @@ const openAttachment = async (attachment: {
   }
 };
 
-const MoreAboutPerson = ({
-  person,
-  open,
-  onOpenChange,
-}: {
-  person: Sender;
-  extra?: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) => {
+export const MoreAboutPerson = ({ person }: { person: Sender; extra?: string }) => {
   const trpc = useTRPC();
   const {
     mutate: doSearch,
@@ -537,10 +507,10 @@ const MoreAboutPerson = ({
   }, [person.name]);
 
   useEffect(() => {
-    if (open) {
+    if (person) {
       handleSearch();
     }
-  }, [open]);
+  }, [person]);
 
   const findSource = useCallback(
     (id: string) => {
@@ -566,36 +536,21 @@ const MoreAboutPerson = ({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showOverlay>
-        <DialogHeader>
-          <DialogTitle>More about {cleanNameDisplay(person.name)}</DialogTitle>
-        </DialogHeader>
-        <div className="mt-4 flex justify-center">
-          {isPending ? (
-            <Loader2 className="animate-spin" />
-          ) : data ? (
-            <StreamingText text={replaceSourcesInText(data.text)} />
-          ) : error ? (
-            <p>Error: {error.message}</p>
-          ) : (
-            <Loader2 className="animate-spin" />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div>
+      {isPending ? (
+        <Loader2 className="animate-spin" />
+      ) : data ? (
+        <p>{replaceSourcesInText(data.text)}</p>
+      ) : error ? (
+        <p>Error: {error.message}</p>
+      ) : (
+        <Loader2 className="animate-spin" />
+      )}
+    </div>
   );
 };
 
-const MoreAboutQuery = ({
-  query,
-  open,
-  onOpenChange,
-}: {
-  query: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) => {
+export const MoreAboutQuery = ({ query }: { query: string }) => {
   const trpc = useTRPC();
   const {
     mutate: doSearch,
@@ -611,10 +566,10 @@ const MoreAboutQuery = ({
   }, [query, doSearch]);
 
   useEffect(() => {
-    if (open && query) {
+    if (query) {
       handleSearch();
     }
-  }, [open, query, handleSearch]);
+  }, [query, handleSearch]);
 
   const findSource = useCallback(
     (id: string) => {
@@ -639,28 +594,21 @@ const MoreAboutQuery = ({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showOverlay>
-        <DialogHeader>
-          <DialogTitle>Search Results</DialogTitle>
-        </DialogHeader>
-        <div className="mt-4 flex justify-center">
-          {isPending ? (
-            <Loader2 className="animate-spin" />
-          ) : data ? (
-            <StreamingText text={replaceSourcesInText(data.text)} />
-          ) : error ? (
-            <p>Error: {error.message}</p>
-          ) : (
-            <Loader2 className="animate-spin" />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div className="flex justify-center">
+      {isPending ? (
+        <Loader2 className="animate-spin" />
+      ) : data ? (
+        <p>{replaceSourcesInText(data.text)}</p>
+      ) : error ? (
+        <p>Error: {error.message}</p>
+      ) : (
+        <Loader2 className="animate-spin" />
+      )}
+    </div>
   );
 };
 
-const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }: Props) => {
+const MailDisplay = ({ emailData, index, totalEmails }: Props) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const { data: threadData } = useThread(emailData.threadId ?? null);
   const { data: messageAttachments } = useAttachments(emailData.id);
@@ -696,27 +644,25 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
   const [, setMode] = useQueryState('mode');
 
   useEffect(() => {
-    if (!demo) {
-      if (activeReplyId === emailData.id) {
-        // Always expand the email being replied to
-        setIsCollapsed(false);
-      } else {
-        // For emails not being replied to, use the default behavior:
-        // - Last email should be expanded
-        // - All other emails should be collapsed
-        setIsCollapsed(!isLastEmail);
-      }
-      // Set all emails to collapsed by default except the last one
-      if (totalEmails && index === totalEmails - 1) {
-        if (totalEmails > 5) {
-          setTimeout(() => {
-            const element = document.getElementById(`mail-${emailData.id}`);
-            element?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }
+    if (activeReplyId === emailData.id) {
+      // Always expand the email being replied to
+      setIsCollapsed(false);
+    } else {
+      // For emails not being replied to, use the default behavior:
+      // - Last email should be expanded
+      // - All other emails should be collapsed
+      setIsCollapsed(!isLastEmail);
+    }
+    // Set all emails to collapsed by default except the last one
+    if (totalEmails && index === totalEmails - 1) {
+      if (totalEmails > 5) {
+        setTimeout(() => {
+          const element = document.getElementById(`mail-${emailData.id}`);
+          element?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
       }
     }
-  }, [demo, emailData.id, isLastEmail, activeReplyId]);
+  }, [emailData.id, isLastEmail, activeReplyId]);
 
   //   const listUnsubscribeAction = useMemo(
   //     () =>
@@ -1168,68 +1114,6 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
     }
   };
 
-  const renderPerson = useCallback(
-    (person: Sender) => (
-      <Popover key={person.email}>
-        <PopoverTrigger asChild>
-          <div
-            key={person.email}
-            className="dark:bg-panelDark inline-flex items-center justify-start gap-1.5 overflow-hidden rounded-full border bg-white p-1 pr-2"
-          >
-            <BimiAvatar
-              email={person.email}
-              name={person.name || person.email}
-              className="h-5 w-5"
-            />
-            <div className="text-panelDark justify-start text-sm font-medium leading-none dark:text-white">
-              {person.name || person.email}
-            </div>
-          </div>
-        </PopoverTrigger>
-        <PopoverContent className="min-w-fit text-sm">
-          <div className="flex items-center gap-2">
-            <BimiAvatar
-              email={person.email}
-              name={person.name || person.email}
-              className="h-12 w-12"
-            />
-            <div>
-              <p className="font-medium">{person.name || 'Unknown'}</p>
-              <div className="group flex items-center gap-2">
-                <p>{person.email || 'No email'}</p>
-                <span className="opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                  <CopyIcon
-                    size={14}
-                    className="cursor-pointer"
-                    onClick={() => handleCopySenderEmail(person.email)}
-                  />
-                </span>
-              </div>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-    ),
-    [],
-  );
-
-  const people = useMemo(() => {
-    if (!activeConnection) return [];
-    const allPeople = [
-      ...(folder === 'sent' ? [] : [emailData.sender]),
-      ...(emailData.to || []),
-      ...(emailData.cc || []),
-      ...(emailData.bcc || []),
-    ];
-    return allPeople.filter(
-      (p): p is Sender =>
-        Boolean(p?.email) &&
-        p.email !== activeConnection!.email &&
-        p.name !== 'No Sender Name' &&
-        p === allPeople.find((other) => other?.email === p?.email),
-    );
-  }, [emailData, activeConnection]);
-
   return (
     <div
       className={cn('relative flex-1 overflow-hidden')}
@@ -1241,76 +1125,46 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
       }}
     >
       <>
-        {searchQuery && (
-          <MoreAboutQuery
-            query={searchQuery}
-            open={!!searchQuery}
-            onOpenChange={(open) => (open ? void 0 : setSearchQuery(null))}
-          />
-        )}
-        {researchSender && (
-          <MoreAboutPerson
-            open={!!researchSender}
-            onOpenChange={(open) => (open ? void 0 : setResearchSender(null))}
-            person={researchSender}
-          />
-        )}
         <div className="relative h-full overflow-y-auto">
+<<<<<<< HEAD
           <div
             className="flex cursor-pointer flex-col pb-2 transition-all duration-200"
             onClick={toggleCollapse}
           >
             <div className="mt-3 flex w-full items-start justify-between gap-4 px-3">
               <div className="flex w-full justify-center gap-4">
+=======
+          <div className="flex cursor-pointer flex-col pb-2" onClick={toggleCollapse}>
+            <div className="flex w-full items-start justify-between gap-4">
+              <div className="flex w-full justify-center gap-2">
+>>>>>>> 6e2fd35899369c28a38581d63187425c8c43e02e
                 <BimiAvatar
                   email={emailData?.sender?.email}
                   name={emailData?.sender?.name}
-                  className="mt-3 h-8 w-8"
+                  className="h-6 w-6"
                 />
 
                 <div className="flex w-full items-center justify-between">
                   <div className="flex w-full items-center justify-start">
                     <div className="flex w-full flex-col">
-                      <div className="flex w-full items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              setResearchSender({
-                                name: emailData?.sender?.name || '',
-                                email: emailData?.sender?.email || '',
-                                //   extra: emailData?.sender?.extra || '',
-                              });
-                            }}
-                            className="hover:bg-muted max-w-36 truncate whitespace-nowrap font-semibold md:max-w-none"
-                          >
-                            {cleanNameDisplay(emailData?.sender?.name)}
-                          </span>
-
+                      <div className="flex w-full items-start justify-between">
+                        <div className="">
                           <Popover open={openDetailsPopover} onOpenChange={handlePopoverChange}>
                             <PopoverTrigger asChild>
-                              <button
-                                className="hover:bg-iconLight/10 dark:hover:bg-iconDark/20 flex items-center gap-2 rounded-md p-2"
+                              <span
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   e.preventDefault();
                                   setOpenDetailsPopover(!openDetailsPopover);
                                 }}
-                                ref={triggerRef}
+                                className="hover:bg-muted max-w-36 truncate whitespace-nowrap font-semibold md:max-w-none"
                               >
-                                <p className="text-muted-foreground text-xs underline dark:text-[#8C8C8C]">
-                                  {m['common.mailDisplay.details']()}
-                                </p>
-                              </button>
+                                {cleanNameDisplay(emailData?.sender?.name)}
+                              </span>
                             </PopoverTrigger>
                             <PopoverContent
-                              className="dark:bg-panelDark flex w-[420px] overflow-auto rounded-lg border p-4 text-left shadow-lg"
-                              onBlur={(e) => {
-                                if (!triggerRef.current?.contains(e.relatedTarget)) {
-                                  setOpenDetailsPopover(false);
-                                }
-                              }}
+                              align="start"
+                              className="dark:bg-panelDark flex w-[420px] overflow-auto rounded-lg border p-2 text-left shadow-lg"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="space-y-1 text-sm">
@@ -1414,6 +1268,54 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                               </div>
                             </PopoverContent>
                           </Popover>
+                          <div className="flex gap-1">
+                            <p className="text-muted-foreground text-sm font-medium dark:text-[#8C8C8C]">
+                              {m['common.mailDisplay.to']()}:{' '}
+                              {(() => {
+                                // Combine to and cc recipients
+                                const allRecipients = [
+                                  ...(emailData?.to || []),
+                                  ...(emailData?.cc || []),
+                                ];
+
+                                // If you're the only recipient
+                                if (allRecipients.length === 1 && folder !== 'sent') {
+                                  return <span key="you">You</span>;
+                                }
+
+                                // Show first 3 recipients + count of others
+                                const visibleRecipients = allRecipients.slice(0, 3);
+                                const remainingCount = allRecipients.length - 3;
+
+                                return (
+                                  <>
+                                    {visibleRecipients.map((recipient, index) => (
+                                      <span key={recipient.email}>
+                                        {cleanNameDisplay(recipient.name) ||
+                                          cleanEmailDisplay(recipient.email)}
+                                        {index < visibleRecipients.length - 1 ? ', ' : ''}
+                                      </span>
+                                    ))}
+                                    {remainingCount > 0 && (
+                                      <span key="others">{`, +${remainingCount} others`}</span>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </p>
+                            {(emailData?.bcc?.length || 0) > 0 && (
+                              <p className="text-muted-foreground text-sm font-medium dark:text-[#8C8C8C]">
+                                Bcc:{' '}
+                                {emailData?.bcc?.map((recipient, index) => (
+                                  <span key={recipient.email}>
+                                    {cleanNameDisplay(recipient.name) ||
+                                      cleanEmailDisplay(recipient.email)}
+                                    {index < (emailData?.bcc?.length || 0) - 1 ? ', ' : ''}
+                                  </span>
+                                ))}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-center">
@@ -1477,56 +1379,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                           </DropdownMenu>
                         </div>
                       </div>
-                      <div className="flex justify-between">
-                        <div className="flex gap-1">
-                          <p className="text-muted-foreground text-sm font-medium dark:text-[#8C8C8C]">
-                            {m['common.mailDisplay.to']()}:{' '}
-                            {(() => {
-                              // Combine to and cc recipients
-                              const allRecipients = [
-                                ...(emailData?.to || []),
-                                ...(emailData?.cc || []),
-                              ];
-
-                              // If you're the only recipient
-                              if (allRecipients.length === 1 && folder !== 'sent') {
-                                return <span key="you">You</span>;
-                              }
-
-                              // Show first 3 recipients + count of others
-                              const visibleRecipients = allRecipients.slice(0, 3);
-                              const remainingCount = allRecipients.length - 3;
-
-                              return (
-                                <>
-                                  {visibleRecipients.map((recipient, index) => (
-                                    <span key={recipient.email}>
-                                      {cleanNameDisplay(recipient.name) ||
-                                        cleanEmailDisplay(recipient.email)}
-                                      {index < visibleRecipients.length - 1 ? ', ' : ''}
-                                    </span>
-                                  ))}
-                                  {remainingCount > 0 && (
-                                    <span key="others">{`, +${remainingCount} others`}</span>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </p>
-                          {(emailData?.bcc?.length || 0) > 0 && (
-                            <p className="text-muted-foreground text-sm font-medium dark:text-[#8C8C8C]">
-                              Bcc:{' '}
-                              {emailData?.bcc?.map((recipient, index) => (
-                                <span key={recipient.email}>
-                                  {cleanNameDisplay(recipient.name) ||
-                                    cleanEmailDisplay(recipient.email)}
-                                  {index < (emailData?.bcc?.length || 0) - 1 ? ', ' : ''}
-                                </span>
-                              ))}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                      <div className="flex justify-between"></div>
                     </div>
 
                     {/* Pending, needs a storage to make the unsubscribe status consitent */}
@@ -1578,16 +1431,11 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             </div>
           </div>
 
-          <div
-            className={cn(
-              'h-0 overflow-hidden transition-all duration-200',
-              !isCollapsed && 'h-[1px]',
-            )}
-          ></div>
+          <div className={cn('h-0 overflow-hidden', !isCollapsed && 'h-[1px]')}></div>
 
           <div
             className={cn(
-              'grid overflow-hidden transition-all duration-200',
+              'grid overflow-hidden',
               isCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
             )}
             onClick={(e) => e.stopPropagation()}
@@ -1647,7 +1495,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                     text={m['common.mail.reply']()}
                     shortcut={isLastEmail ? 'r' : undefined}
                   />
-                  <ActionButton
+                  {/* <ActionButton
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsCollapsed(false);
@@ -1657,7 +1505,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                     icon={<ReplyAll className="fill-muted-foreground dark:fill-[#9B9B9B]" />}
                     text={m['common.mail.replyAll']()}
                     shortcut={isLastEmail ? 'a' : undefined}
-                  />
+                  /> */}
                   <ActionButton
                     onClick={(e) => {
                       e.stopPropagation();
