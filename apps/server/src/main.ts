@@ -189,6 +189,10 @@ export class DbRpcDO extends RpcTarget {
   async updateOrganizationDomain(organizationId: string, domain: string, update: any) {
     return await this.mainDo.updateOrganizationDomain(organizationId, domain, update);
   }
+
+  async findOrganizationDomainByEmail(email: string) {
+    return await this.mainDo.findOrganizationDomainByEmail(email);
+  }
 }
 
 class ZeroDB extends DurableObject<Env> {
@@ -548,6 +552,12 @@ class ZeroDB extends DurableObject<Env> {
           eq(organizationDomain.domain, domain),
         ),
       );
+  }
+
+  async findOrganizationDomainByEmail(email: string) {
+    return await this.db.query.organizationDomain.findFirst({
+      where: eq(organizationDomain.domain, email.split('@')[1]),
+    });
   }
 }
 
