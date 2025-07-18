@@ -22,8 +22,12 @@ export const connectionsRouter = router({
         .filter((c) => !c.accessToken || !c.refreshToken)
         .map((c) => c.id);
 
+      const connectionsSorted = connections.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
       return {
-        connections: connections.map((connection) => {
+        connections: connectionsSorted.map((connection) => {
+          const scope = (connection.scope ?? '').replace(/,/g, ' ');
+          const hasCalendarScope = scope.includes('https://www.googleapis.com/auth/calendar') || scope.includes('https://www.googleapis.com/auth/calendar.events');
           return {
             id: connection.id,
             email: connection.email,
@@ -31,6 +35,8 @@ export const connectionsRouter = router({
             picture: connection.picture,
             createdAt: connection.createdAt,
             providerId: connection.providerId,
+            scope: scope,
+            hasCalendar: hasCalendarScope,
           };
         }),
         disconnectedIds,

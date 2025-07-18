@@ -53,7 +53,7 @@ const connectionHandlerHook = async (account: Account) => {
     picture: userInfo.photo || '',
     accessToken: account.accessToken,
     refreshToken: account.refreshToken,
-    scope: driver.getScope(),
+    scope: account.scope ?? '',
     expiresAt: new Date(Date.now() + (account.accessTokenExpiresAt?.getTime() || 3600000)),
   };
 

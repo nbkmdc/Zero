@@ -222,6 +222,7 @@ export enum Tools {
   BulkDelete = 'bulkDelete',
   BulkArchive = 'bulkArchive',
   DeleteLabel = 'deleteLabel',
+  CreateCalendarEvent = 'createCalendarEvent',
   AskZeroMailbox = 'askZeroMailbox',
   AskZeroThread = 'askZeroThread',
   WebSearch = 'webSearch',

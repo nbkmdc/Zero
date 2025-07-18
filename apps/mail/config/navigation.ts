@@ -151,6 +151,11 @@ export const navigationConfig: Record<string, NavConfig> = {
             icon: Users,
           },
           {
+            title: 'Integrations',
+            url: '/settings/integrations',
+            icon: SettingsGear,
+          },
+          {
             title: m['navigation.settings.privacy'](),
             url: '/settings/privacy',
             icon: LockIcon,

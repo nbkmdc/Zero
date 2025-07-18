@@ -43,6 +43,7 @@ export default [
         route('/danger-zone', '(routes)/settings/danger-zone/page.tsx'),
         route('/general', '(routes)/settings/general/page.tsx'),
         route('/labels', '(routes)/settings/labels/page.tsx'),
+        route('/integrations', '(routes)/settings/integrations/page.tsx'),
         // route('/categories', '(routes)/settings/categories/page.tsx'),
         route('/notifications', '(routes)/settings/notifications/page.tsx'),
         route('/organization', '(routes)/settings/organization/page.tsx'),
