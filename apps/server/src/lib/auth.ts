@@ -356,21 +356,20 @@ export const createAuth = () => {
               });
             }
 
-            // if (newSession.user.email) {
-            //   // in here we want to check if the domain the user is signing up with is a domain associated with an organization
-            //   // if it is, we want to invite the user to the organization
-            //   const organization = await db.findOrganizationDomain(
-            //     newSession.user.email,
-            //     newSession.user.id,
-            //   );
-            //   if (organization) {
-            //     await authClient.organization.inviteMember({
-            //       email: newSession.user.email,
-            //       role: 'member',
-            //       organizationId: organization.id,
-            //     });
-            //   }
-            // }
+            if (newSession.user.email) {
+              const organization = await db.findOrganizationDomainByEmail(newSession.user.email);
+
+              if (organization) {
+                const context = ctx.context;
+
+                await context.internal.organization.inviteMember({
+                  email: newSession.user.email,
+                  role: 'member',
+                  organizationId: organization.id,
+                  inviterId: newSession.user.id,
+                });
+              }
+            }
           }
         }
       }),
