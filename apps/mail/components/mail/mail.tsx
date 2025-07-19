@@ -516,18 +516,11 @@ export function MailLayout() {
   return (
     <TooltipProvider delayDuration={0}>
       <PricingDialog />
-<<<<<<< HEAD
-      <div className="rounded-inherit relative z-[5] flex p-0 md:mr-0.5">
-=======
-      <div className="rounded-inherit relative z-[5]">
-        <div className="bg-panelLight dark:bg-panelDark flex gap-2 p-2">
-          <NavUser />
-        </div>
->>>>>>> 6e2fd35899369c28a38581d63187425c8c43e02e
+      <div className="rounded-inherit relative z-[5] w-full">
         <ResizablePanelGroup
           direction="horizontal"
           autoSaveId="mail-panel-layout"
-          className="rounded-inherit overflow-hidden"
+          className="rounded-inherit overflow-hidden w-full"
         >
           {!threadId && (
             <ResizablePanel
@@ -535,22 +528,27 @@ export function MailLayout() {
               minSize={35}
               maxSize={35}
               className={cn(
-                `bg-panelLight dark:bg-panelDark w-fit shadow-sm lg:flex lg:h-[calc(100dvh-1px)] lg:shadow-sm`,
+                `bg-panelLight dark:bg-panelDark w-full shadow-sm lg:flex h-[calc(100dvh-1px)] lg:shadow-sm `,
                 isDesktop && threadId && 'hidden lg:block',
               )}
               onMouseEnter={handleMailListMouseEnter}
               onMouseLeave={handleMailListMouseLeave}
-            >
-              <div className="w-full md:h-[calc(100dvh-10px)]">
-                <div
-                  className={cn(
-                    `${category === 'Important' ? 'bg-[#F59E0D]' : category === 'All Mail' ? 'bg-[#006FFE]' : category === 'Personal' ? 'bg-[#39ae4a]' : category === 'Updates' ? 'bg-[#8B5CF6]' : category === 'Promotions' ? 'bg-[#F43F5E]' : category === 'Unread' ? 'bg-[#FF4800]' : 'bg-[#F59E0D]'}`,
-                    'relative bottom-0.5 z-[5] h-0.5 w-full transition-opacity',
-                    isFetching ? 'opacity-100' : 'opacity-0',
-                  )}
-                />
-                <div className="relative z-[1] h-[calc(100dvh-(2px+2px))] overflow-hidden pt-0">
-                  <MailList />
+            > 
+              <div className="flex h-full flex-col w-full">
+                <div className="bg-panelLight dark:bg-panelDark flex gap-2 p-2 pl-4 pr-2.5">
+                  <NavUser />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <div
+                    className={cn(
+                      `${category === 'Important' ? 'bg-[#F59E0D]' : category === 'All Mail' ? 'bg-[#006FFE]' : category === 'Personal' ? 'bg-[#39ae4a]' : category === 'Updates' ? 'bg-[#8B5CF6]' : category === 'Promotions' ? 'bg-[#F43F5E]' : category === 'Unread' ? 'bg-[#FF4800]' : 'bg-[#F59E0D]'}`,
+                      'relative bottom-0.5 z-[5] h-0.5 w-full transition-opacity',
+                      isFetching ? 'opacity-100' : 'opacity-0',
+                    )}
+                  />
+                  <div className="relative z-[1] h-[calc(100%-0.5rem)] overflow-hidden pt-0 w-full">
+                    <MailList />
+                  </div>
                 </div>
               </div>
             </ResizablePanel>
@@ -559,11 +557,7 @@ export function MailLayout() {
           {isDesktop && threadId && (
             <ResizablePanel
               className={cn(
-<<<<<<< HEAD
-                'bg-panelLight dark:bg-panelDark w-fit  lg:h-[calc(100dvh-4px)]',
-=======
-                'bg-panelLight dark:bg-panelDark w-fit lg:h-[calc(100dvh-4px)]',
->>>>>>> 6e2fd35899369c28a38581d63187425c8c43e02e
+                'bg-panelLight dark:bg-panelDark w-fit lg:h-[calc(100dvh-1px)]',
                 // Only show on md screens and larger when there is a threadId
                 !threadId && 'hidden lg:block',
               )}

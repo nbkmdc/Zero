@@ -220,8 +220,8 @@ const Thread = memo(
             data-thread-id={latestMessage.threadId ?? latestMessage.id}
             key={latestMessage.threadId ?? latestMessage.id}
             className={cn(
-              'md:hover:bg-offsetLight md:hover:bg-primary/5 relative mx-2 flex cursor-pointer flex-col items-start rounded-lg border-transparent text-left text-sm transition-all md:mb-3 md:py-2',
-              (isMailSelected || isMailBulkSelected || isKeyboardFocused) && 'border-border',
+              'md:hover:bg-offsetLight md:hover:bg-primary/5 relative flex cursor-pointer flex-col items-start rounded-lg border text-left text-sm transition-all md:mb-3 md:py-2 mx-2',
+              (isMailSelected || isMailBulkSelected || isKeyboardFocused) ? 'border-border' : 'border-transparent',
               isKeyboardFocused && 'ring-primary/50',
               'group relative',
             )}
@@ -328,35 +328,37 @@ const Thread = memo(
               ) : null}
             </div>
             {/* Desktop Layout - md and larger */}
-            <div className="hidden w-full items-center justify-between gap-4 px-4 pl-5 md:flex">
+            <div className="hidden w-full items-center justify-between gap-4 pr-4 md:flex">
               <div
                 className={cn(
                   'relative flex w-full items-center',
                   getThreadData.hasUnread ? 'opacity-100' : 'opacity-50',
                 )}
               >
-                {isMailBulkSelected && (
-                  <div
-                    className={cn(
-                      'top-[-3px] -ml-3 mr-[11px] flex h-[13px] w-[13px] items-center justify-center rounded border-2 border-[#484848] transition-colors',
-                      isMailBulkSelected && 'border-none bg-[#3B82F6]',
-                    )}
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      const threadId = latestMessage.threadId ?? message.id;
-                      setMail((prev: Config) => ({
-                        ...prev,
-                        bulkSelected: isMailBulkSelected
-                          ? prev.bulkSelected.filter((id: string) => id !== threadId)
-                          : [...prev.bulkSelected, threadId],
-                      }));
-                    }}
-                  >
-                    {isMailBulkSelected && (
-                      <Check className="text-panelLight dark:text-panelDark relative top-[0.5px] h-2 w-2" />
+                {/* Always reserve space for selection indicator to prevent layout shift */}
+                <div className="relative left-2.5 flex-shrink-0">
+                  <div className="relative">
+                    {isMailBulkSelected ? (
+                      <div
+                        className="flex h-[13px] w-[13px] items-center justify-center rounded border-none bg-[#3B82F6] transition-colors"
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          const threadId = latestMessage.threadId ?? message.id;
+                          setMail((prev: Config) => ({
+                            ...prev,
+                            bulkSelected: isMailBulkSelected
+                              ? prev.bulkSelected.filter((id: string) => id !== threadId)
+                              : [...prev.bulkSelected, threadId],
+                          }));
+                        }}
+                      >
+                        <Check className="relative top-[0.5px] h-2 w-2 text-white" />
+                      </div>
+                    ) : (
+                      <div className="h-[13px] w-[13px]" />
                     )}
                   </div>
-                )}
+                </div>
 
                 {/* <div className={cn('mr-2 flex-shrink-0')} onClick={handleToggleStar}>
                   <Star2
@@ -378,17 +380,25 @@ const Thread = memo(
                           {highlightText(latestMessage.subject, searchValue.highlight)}
                         </span>
                       ) : (
-                        <span
-                          className={cn(
-                            'line-clamp-1 min-w-0 text-sm font-medium',
-                            hasDraft ? 'border-b-muted-foreground border-b border-dashed' : '',
-                          )}
-                        >
-                          {highlightText(
-                            cleanNameDisplay(latestMessage.sender.name) || '',
-                            searchValue.highlight,
-                          )}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className={cn(
+                            "mr-1 size-2 flex-shrink-0 rounded-full",
+                            displayUnread && !isMailSelected && !isMailBulkSelected 
+                              ? "bg-[#006FFE]" 
+                              : "bg-black/10 dark:bg-white/10"
+                          )} />
+                          <span
+                            className={cn(
+                              'ml-2 line-clamp-1 min-w-0 text-sm font-medium',
+                              hasDraft ? 'border-b-muted-foreground border-b border-dashed' : '',
+                            )}
+                          >
+                            {highlightText(
+                              cleanNameDisplay(latestMessage.sender.name) || '',
+                              searchValue.highlight,
+                            )}
+                          </span>
+                        </div>
                       )}
                     </div>
 
@@ -530,17 +540,18 @@ const Thread = memo(
                               </span>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <span className={cn('line-clamp-1 overflow-hidden text-sm')}>
+                                <span className={cn(
+                                  "-ml-1 mr-1 size-2 flex-shrink-0 rounded-full",
+                                  displayUnread && !isMailSelected && !isMailBulkSelected 
+                                    ? "bg-[#006FFE]" 
+                                    : "bg-black/10 dark:bg-white/10"
+                                )} />
+                                <span className={cn('ml-1 line-clamp-1 overflow-hidden text-sm')}>
                                   {highlightText(
                                     cleanNameDisplay(latestMessage.sender.name) || '',
                                     searchValue.highlight,
                                   )}
                                 </span>
-                                {displayUnread && !isMailSelected && !isFolderSent ? (
-                                  <>
-                                    <span className="ml-0.5 size-2 rounded-full bg-[#006FFE]" />
-                                  </>
-                                ) : null}
                               </div>
                             )}{' '}
                           </span>

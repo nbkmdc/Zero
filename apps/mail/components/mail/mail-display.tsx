@@ -1126,18 +1126,9 @@ const MailDisplay = ({ emailData, index, totalEmails }: Props) => {
     >
       <>
         <div className="relative h-full overflow-y-auto">
-<<<<<<< HEAD
-          <div
-            className="flex cursor-pointer flex-col pb-2 transition-all duration-200"
-            onClick={toggleCollapse}
-          >
-            <div className="mt-3 flex w-full items-start justify-between gap-4 px-3">
-              <div className="flex w-full justify-center gap-4">
-=======
           <div className="flex cursor-pointer flex-col pb-2" onClick={toggleCollapse}>
             <div className="flex w-full items-start justify-between gap-4">
               <div className="flex w-full justify-center gap-2">
->>>>>>> 6e2fd35899369c28a38581d63187425c8c43e02e
                 <BimiAvatar
                   email={emailData?.sender?.email}
                   name={emailData?.sender?.name}

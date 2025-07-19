@@ -21,7 +21,7 @@ export default {
         lightBackground: '#FFFFFF',
         offsetDark: '#0A0A0A',
         offsetLight: '#F5F5F5',
-        panelDark: '#1A1A1A',
+        panelDark: '#0a0a0a',
         panelLight: '#FFFFFF',
         iconDark: '#898989',
         iconLight: '#6D6D6D',
@@ -33,6 +33,8 @@ export default {
         foreground: 'hsl(var(--foreground))',
         skyBlue: '#0066FF',
         shinyGray: '#A1A1A1',
+        cardDark: '#171717',
+        cardLight: '#F5F5F5',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',

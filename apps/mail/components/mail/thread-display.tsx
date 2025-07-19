@@ -31,9 +31,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useOptimisticThreadState } from '@/components/mail/optimistic-thread-state';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { ChevronDown, ChevronUp, CopyIcon, Inbox } from 'lucide-react';
+import { ChevronDown, ChevronUp, CopyIcon, Inbox, User } from 'lucide-react';
 import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+
 import { focusedIndexAtom } from '@/hooks/use-mail-navigation';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { type ThreadDestination } from '@/lib/thread-actions';
@@ -143,7 +143,7 @@ const Card = ({ children, className }: { children: React.ReactNode; className?: 
   return (
     <div
       className={cn(
-        'bg-subtleBlack flex rounded-xl p-2',
+        'bg-cardLight dark:bg-cardDark flex rounded-lg p-4 mt-2',
         isMobile && 'bg-panelLight dark:bg-panelDark sticky top-0 z-10 mt-2',
         className,
       )}
@@ -165,6 +165,7 @@ export function ThreadDisplay() {
   const [, items] = useThreads();
   const [isStarred, setIsStarred] = useState(false);
   const [isImportant, setIsImportant] = useState(false);
+  const [activePanel, setActivePanel] = useState<'summary' | 'subject' | 'sender' | 'more'>('summary');
 
   // Collect all attachments from all messages in the thread
   const allThreadAttachments = useMemo(() => {
@@ -713,7 +714,11 @@ export function ThreadDisplay() {
   useEffect(() => {
     if (mode && activeReplyId) {
       setTimeout(() => {
-        const replyElement = document.getElementById(`reply-composer-${activeReplyId}`);
+        // Try mobile composer first, then sidebar composer
+        const mobileReplyElement = document.getElementById(`reply-composer-mobile-${activeReplyId}`);
+        const sidebarReplyElement = document.getElementById(`reply-composer-sidebar-${activeReplyId}`);
+        const replyElement = mobileReplyElement || sidebarReplyElement;
+        
         if (replyElement) {
           replyElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -792,7 +797,7 @@ export function ThreadDisplay() {
     <div
       className={cn(
         'flex',
-        isMobile ? 'h-full' : 'h-[calc(100dvh-19px)] rounded-xl',
+        isMobile ? 'h-full' : 'h-[calc(100dvh-1px)] rounded-xl',
       )}
     >
       <div
@@ -907,13 +912,13 @@ export function ThreadDisplay() {
             </ThreadActionButton>
           </DropdownMenu>
         </div>
-        <div className="flex w-full gap-2 pl-1">
-          <div className="flex h-full w-2/3 flex-col gap-1 rounded-xl">
-            <Card>
-              <div className="w-full">
+        <div className="flex w-full md:pl-5">
+          <div className="flex h-full w-full lg:w-2/3 flex-col gap-1 rounded-lg">
+         
+              <div className="w-full mt-1">
                 <div className="flex justify-between">
                   <span className="inline-flex items-center gap-2 font-medium text-black dark:text-white">
-                    <span className="">
+                    <span className="lg:text-xl font-semibold max-w-2xl">
                       {emailData?.latest?.subject}{' '}
                       <span className="text-muted-foreground dark:text-[#8C8C8C]">
                         {emailData?.totalReplies &&
@@ -928,7 +933,7 @@ export function ThreadDisplay() {
                       setMode('replyAll');
                       setActiveReplyId(emailData?.latest?.id ?? '');
                     }}
-                    className="inline-flex items-center justify-center gap-1 overflow-hidden rounded-lg border bg-white px-2 dark:border-none dark:bg-[#313131]"
+                    className="inline-flex items-center justify-center gap-1 overflow-hidden rounded-lg border h-7 bg-white px-2 dark:border-none dark:bg-[#313131]"
                   >
                     <Reply className="fill-muted-foreground dark:fill-[#9B9B9B]" />
                     <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
@@ -940,13 +945,13 @@ export function ThreadDisplay() {
                 </div>
 
                 <div className="mt-1 flex items-center gap-2">
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     {threadLabels.length ? <RenderLabels labels={threadLabels} /> : null}
-                  </div>
-                  {threadLabels.length ? (
+                  </div> */}
+                  {/* {threadLabels.length ? (
                     <Separator className="h-3" orientation="vertical" />
-                  ) : null}
-                  <div className="text-sm">
+                  ) : null} */}
+                  {/* <div className="text-sm">
                     {(() => {
                       if (people.length === 1) return null;
                       if (people.length <= 2) {
@@ -981,7 +986,7 @@ export function ThreadDisplay() {
 
                       return null;
                     })()}
-                  </div>
+                  </div> */}
                 </div>
 
                 <ThreadAttachments attachments={allThreadAttachments} />
@@ -1108,12 +1113,12 @@ export function ThreadDisplay() {
                   </DropdownMenu>
                 </div>
               </div>
-            </Card>
-            <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto">
-              <div className="pb-4">
+            
+            <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto pt-0">
+              <div className="pb-">
                 {(emailData?.messages || []).map((message, index) => {
                   return (
-                    <Card key={message.id}>
+                    <Card key={message.id} className='mt-[0px] mb-2'>
                       <MailDisplay
                         emailData={message}
                         isFullscreen={isFullscreen}
@@ -1129,44 +1134,83 @@ export function ThreadDisplay() {
               </div>
             </div>
 
-            {/* {mode &&
-              activeReplyId &&
-              activeReplyId ===
-                emailData?.messages?.[(emailData?.messages?.length || 0) - 1]?.id && (
-                <div
-                  className="border-border bg-panelLight dark:bg-panelDark sticky bottom-0 z-10 border-t px-4 py-2"
-                  id={`reply-composer-${activeReplyId}`}
-                >
-                  <ReplyCompose messageId={activeReplyId} />
-                </div>
-              )} */}
-          </div>
-          <div className="w-1/3">
-            <Tabs className="w-full" defaultValue="summary">
-              <TabsList>
-                <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="subject">Subject</TabsTrigger>
-                <TabsTrigger value="sender">Sender</TabsTrigger>
-                <TabsTrigger value="more">More</TabsTrigger>
-              </TabsList>
-              <TabsContent value="summary">
-                <AiSummary />
-              </TabsContent>
-              {emailData?.latest?.subject && (
-                <TabsContent className="max-h-96 overflow-auto" value="subject">
-                  <MoreAboutQuery query={emailData?.latest?.subject} />
-                </TabsContent>
-              )}
-              {emailData?.latest?.sender && (
-                <TabsContent className="max-h-96 overflow-auto" value="sender">
-                  <MoreAboutPerson person={emailData?.latest?.sender} />
-                </TabsContent>
-              )}
-            </Tabs>
+            {/* Show reply composer under emails on smaller screens */}
             {mode && activeReplyId && (
               <div
-                className="bg-panelLight dark:bg-panelDark sticky bottom-0 z-10 col-span-4"
-                id={`reply-composer-${activeReplyId}`}
+                className="lg:hidden border-border bg-panelLight dark:bg-panelDark sticky bottom-0 z-10 border-t px-4 py-2"
+                id={`reply-composer-mobile-${activeReplyId}`}
+              >
+                <ReplyCompose messageId={activeReplyId} />
+              </div>
+            )}
+          </div>
+          <div className="hidden lg:flex w-1/3 bg-cardLight dark:bg-cardDark rounded-xl ml-2 mr-1 h-[calc(100dvh-9px)] flex-col px-2 pt-4">
+            {/* Icon buttons row */}
+            <div className="flex gap-1 mb-4">
+              <ThreadActionButton
+                icon={Sparkles}
+                label="Summary"
+                onClick={() => setActivePanel('summary')}
+                className="flex-1"
+                tooltipSide="bottom"
+                overrideDefaultIconStyling={true}
+                iconClassName="h-4 w-4 fill-muted-foreground stroke-muted-foreground"
+              />
+              <ThreadActionButton
+                icon={Mail}
+                label="Subject"
+                onClick={() => setActivePanel('subject')}
+                className="flex-1"
+                tooltipSide="bottom"
+                disabled={!emailData?.latest?.subject}
+                overrideDefaultIconStyling={true}
+                iconClassName="h-4 w-4 fill-muted-foreground stroke-muted-foreground"
+              />
+              <ThreadActionButton
+                icon={User}
+                label="Sender"
+                onClick={() => setActivePanel('sender')}
+                className="flex-1"
+                tooltipSide="bottom"
+                disabled={!emailData?.latest?.sender}
+                isLucide={true}
+                overrideDefaultIconStyling={true}
+                iconClassName="h-4 w-4 text-muted-foreground"
+              />
+              <ThreadActionButton
+                icon={ThreeDots}
+                label="More"
+                onClick={() => setActivePanel('more')}
+                className="flex-1"
+                tooltipSide="bottom"
+                overrideDefaultIconStyling={true}
+                iconClassName="h-4 w-4 fill-muted-foreground"
+              />
+            </div>
+
+            {/* Content panels */}
+            <div className="flex-1 overflow-auto">
+              {activePanel === 'summary' && (
+                <AiSummary />
+              )}
+              {activePanel === 'subject' && emailData?.latest?.subject && (
+                <MoreAboutQuery query={emailData?.latest?.subject} />
+              )}
+              {activePanel === 'sender' && emailData?.latest?.sender && (
+                <MoreAboutPerson person={emailData?.latest?.sender} />
+              )}
+              {activePanel === 'more' && (
+                <div className="text-sm text-muted-foreground p-4">
+                  Additional options coming soon...
+                </div>
+              )}
+            </div>
+
+            {/* Show reply composer in sidebar on larger screens */}
+            {mode && activeReplyId && (
+              <div
+                className="sticky bottom-0 z-10 pt-4 mt-4"
+                id={`reply-composer-sidebar-${activeReplyId}`}
               >
                 <ReplyCompose messageId={activeReplyId} />
               </div>
