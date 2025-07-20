@@ -2,6 +2,7 @@ import { usePartySocket } from 'partysocket/react';
 import { useAtom, useSetAtom } from 'jotai';
 import { syncConnectionAtom, threadAtom, threadListAtom } from '@/store/sync';
 import { IncomingMessageType, OutgoingMessageType } from '@/types/sync';
+import useBackgroundQueue from '@/hooks/ui/use-background-queue';
 
 export enum SyncMessageType {
   SYNC_THREADS = 'sync_threads',
@@ -19,6 +20,7 @@ export function useSyncService(connectionId: string | null) {
   const [syncConnection, setSyncConnection] = useAtom(syncConnectionAtom);
   const setThread = useSetAtom(threadAtom);
   const setThreadList = useSetAtom(threadListAtom);
+  const { deleteFromQueue } = useBackgroundQueue();
 
   const socket = usePartySocket({
     party: 'zero-agent',
@@ -58,7 +60,8 @@ export function useSyncService(connectionId: string | null) {
           case 'sync_action_complete':
             console.log('Sync action completed:', data);
             if (data.threadIds && Array.isArray(data.threadIds)) {
-              data.threadIds.forEach((_threadId: string) => {
+              data.threadIds.forEach((threadId: string) => {
+                deleteFromQueue(threadId);
               });
             }
             break;
