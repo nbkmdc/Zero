@@ -3,7 +3,7 @@ import { useSearchValue } from '@/hooks/use-search-value';
 import { trpcClient } from '@/providers/query-provider';
 import { useMail } from '@/components/mail/use-mail';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useThreads } from '@/hooks/use-threads';
+import { useThreads } from '@/hooks/use-sync-threads';
 import { useParams } from 'react-router';
 import { Check } from '../icons/icons';
 import { cn } from '@/lib/utils';
@@ -20,11 +20,11 @@ export default function SelectAllCheckbox({ className }: { className?: string })
 
   const checkboxRef = useRef<HTMLButtonElement>(null);
 
-  const loadedIds = useMemo(() => loadedThreads.map((t) => t.id), [loadedThreads]);
+  const loadedIds = useMemo(() => loadedThreads.map((t: any) => t.id), [loadedThreads]);
 
   const isAllLoadedSelected = useMemo(() => {
     if (loadedIds.length === 0) return false;
-    return loadedIds.every((id) => mail.bulkSelected.includes(id));
+    return loadedIds.every((id: string) => mail.bulkSelected.includes(id));
   }, [loadedIds, mail.bulkSelected]);
 
   const isIndeterminate = useMemo(() => {

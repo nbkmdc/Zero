@@ -3,7 +3,7 @@ import { enhancedKeyboardShortcuts } from '@/config/shortcuts';
 import useMoveTo from '@/hooks/driver/use-move-to';
 import useDelete from '@/hooks/driver/use-delete';
 import { useShortcuts } from './use-hotkey-utils';
-import { useThread } from '@/hooks/use-threads';
+import { useThread } from '@/hooks/use-sync-thread';
 import { useParams } from 'react-router';
 import { useQueryState } from 'nuqs';
 import { useSetAtom } from 'jotai';

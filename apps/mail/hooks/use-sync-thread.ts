@@ -2,7 +2,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import { threadAtom, syncConnectionAtom } from '@/store/sync';
 import { useSyncService } from '@/lib/sync-service';
 import { useActiveConnection } from '@/hooks/use-connections';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { IncomingMessageType } from '@/types/sync';
 
 export const useSyncThread = (threadId: string) => {
@@ -30,9 +30,39 @@ export const useSyncThread = (threadId: string) => {
     }
   }, [loadThread, syncConnection.isConnected, thread]);
 
+  const processedData = useMemo(() => {
+    if (!thread) return null;
+    
+    const messages = thread.messages || [];
+    const drafts = messages.filter((msg: any) => msg.labelIds?.includes('DRAFT'));
+    const latestDraft = drafts.length > 0 ? drafts[drafts.length - 1] : null;
+    
+    return {
+      ...thread,
+      messages,
+      latestDraft,
+    };
+  }, [thread]);
+
+  const isGroupThread = useMemo(() => {
+    if (!processedData?.messages) return false;
+    const uniqueParticipants = new Set();
+    processedData.messages.forEach((msg: any) => {
+      if (msg.from) uniqueParticipants.add(msg.from.email);
+      msg.to?.forEach((to: any) => uniqueParticipants.add(to.email));
+      msg.cc?.forEach((cc: any) => uniqueParticipants.add(cc.email));
+    });
+    return uniqueParticipants.size > 2;
+  }, [processedData]);
+
   return {
-    thread,
+    data: processedData,
     isLoading: !thread && syncConnection.isConnected,
-    loadThread,
+    isFetching: !thread && syncConnection.isConnected,
+    refetch: loadThread,
+    isGroupThread,
+    latestDraft: processedData?.latestDraft || null,
   };
 };
+
+export const useThread = useSyncThread;

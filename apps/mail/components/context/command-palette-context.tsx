@@ -46,7 +46,7 @@ import { Separator } from '@/components/ui/separator';
 import { useTRPC } from '@/providers/query-provider';
 import { Calendar } from '@/components/ui/calendar';
 import { useMutation } from '@tanstack/react-query';
-import { useThreads } from '@/hooks/use-threads';
+import { useThreads } from '@/hooks/use-sync-threads';
 import { useLabels } from '@/hooks/use-labels';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';

@@ -42,7 +42,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useBrainState } from '@/hooks/use-summary';
 import { clearBulkSelectionAtom } from './use-mail';
 import AISidebar from '@/components/ui/ai-sidebar';
-import { useThreads } from '@/hooks/use-threads';
+import { useThreads } from '@/hooks/use-sync-threads';
 import { useBilling } from '@/hooks/use-billing';
 import AIToggleButton from '../ai-toggle-button';
 import { useIsMobile } from '@/hooks/use-mobile';

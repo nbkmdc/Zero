@@ -26,7 +26,8 @@ import {
 import { useOptimisticThreadState } from '@/components/mail/optimistic-thread-state';
 import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
 import { type ThreadDestination } from '@/lib/thread-actions';
-import { useThread, useThreads } from '@/hooks/use-threads';
+import { useThreads } from '@/hooks/use-sync-threads';
+import { useThread } from '@/hooks/use-sync-thread';
 import { ExclamationCircle, Mail } from '../icons/icons';
 import { useMemo, type ReactNode } from 'react';
 import { useLabels } from '@/hooks/use-labels';
@@ -73,7 +74,7 @@ const LabelsList = ({ threadId, bulkSelected }: { threadId: string; bulkSelected
 
     let shouldAddLabel = false;
 
-    let hasLabel = thread.labels?.map((label) => label.id).includes(labelId) || false;
+    let hasLabel = thread.labels?.map((label: any) => label.id).includes(labelId) || false;
 
     if (rightClickedThreadOptimisticState.optimisticLabels) {
       if (rightClickedThreadOptimisticState.optimisticLabels.addedLabelIds.includes(labelId)) {
@@ -95,7 +96,7 @@ const LabelsList = ({ threadId, bulkSelected }: { threadId: string; bulkSelected
       {labels
         .filter((label) => label.id)
         .map((label) => {
-          let isChecked = label.id ? thread.labels?.map((l) => l.id).includes(label.id) : false;
+          let isChecked = label.id ? thread.labels?.map((l: any) => l.id).includes(label.id) : false;
 
           const checkboxOptimisticState = useOptimisticThreadState(threadId);
           if (label.id && checkboxOptimisticState.optimisticLabels) {
@@ -160,8 +161,8 @@ export function ThreadContextMenu({
     if (optimisticState.optimisticStarred !== null) {
       starred = optimisticState.optimisticStarred;
     } else {
-      starred = threadData?.messages.some((message) =>
-        message.tags?.some((tag) => tag.name.toLowerCase() === 'starred'),
+      starred = threadData?.messages.some((message: any) =>
+        message.tags?.some((tag: any) => tag.name.toLowerCase() === 'starred'),
       );
     }
 
@@ -169,8 +170,8 @@ export function ThreadContextMenu({
     if (optimisticState.optimisticImportant !== null) {
       important = optimisticState.optimisticImportant;
     } else {
-      important = threadData?.messages.some((message) =>
-        message.tags?.some((tag) => tag.name.toLowerCase() === 'important'),
+      important = threadData?.messages.some((message: any) =>
+        message.tags?.some((tag: any) => tag.name.toLowerCase() === 'important'),
       );
     }
 

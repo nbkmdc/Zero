@@ -30,7 +30,8 @@ import { focusedIndexAtom } from '@/hooks/use-mail-navigation';
 
 import { type ThreadDestination } from '@/lib/thread-actions';
 import { handleUnsubscribe } from '@/lib/email-utils.client';
-import { useThread, useThreads } from '@/hooks/use-threads';
+import { useThreads } from '@/hooks/use-sync-threads';
+import { useThread } from '@/hooks/use-sync-thread';
 import { useAISidebar } from '@/components/ui/ai-sidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ParsedMessage, Attachment } from '@/types';
@@ -165,7 +166,7 @@ export function ThreadDisplay() {
 
   const folder = params?.folder ?? 'inbox';
   const [id, setThreadId] = useQueryState('threadId');
-  const { data: emailData, isLoading, refetch: refetchThread } = useThread(id ?? null);
+  const { data: emailData, isLoading, refetch: refetchThread } = useThread(id || '');
   const [, items] = useThreads();
   const [isStarred, setIsStarred] = useState(false);
   const [isImportant, setIsImportant] = useState(false);
@@ -173,7 +174,7 @@ export function ThreadDisplay() {
   // Collect all attachments from all messages in the thread
   const allThreadAttachments = useMemo(() => {
     if (!emailData?.messages) return [];
-    return emailData.messages.reduce<Attachment[]>((acc, message) => {
+    return emailData.messages.reduce((acc: Attachment[], message: any) => {
       if (message.attachments && message.attachments.length > 0) {
         acc.push(...message.attachments);
       }
@@ -503,7 +504,7 @@ export function ThreadDisplay() {
         <body>
           ${emailData?.messages
             ?.map(
-              (message, index) => `
+              (message: any, index: number) => `
             <div class="email-container">
               <div class="email-header">
                 ${index === 0 ? `<h1 class="email-title">${message.subject || 'No Subject'}</h1>` : ''}
@@ -514,7 +515,7 @@ export function ThreadDisplay() {
                     ? `
                   <div class="labels-section">
                     ${message.tags
-                      .map((tag) => `<span class="label-badge">${tag.name}</span>`)
+                      .map((tag: any) => `<span class="label-badge">${tag.name}</span>`)
                       .join('')}
                   </div>
                 `
@@ -540,7 +541,7 @@ export function ThreadDisplay() {
                       <span class="meta-value">
                         ${message.to
                           .map(
-                            (recipient) =>
+                            (recipient: any) =>
                               `${cleanNameDisplay(recipient.name)} <${recipient.email}>`,
                           )
                           .join(', ')}
@@ -559,7 +560,7 @@ export function ThreadDisplay() {
                       <span class="meta-value">
                         ${message.cc
                           .map(
-                            (recipient) =>
+                            (recipient: any) =>
                               `${cleanNameDisplay(recipient.name)} <${recipient.email}>`,
                           )
                           .join(', ')}
@@ -578,7 +579,7 @@ export function ThreadDisplay() {
                       <span class="meta-value">
                         ${message.bcc
                           .map(
-                            (recipient) =>
+                            (recipient: any) =>
                               `${cleanNameDisplay(recipient.name)} <${recipient.email}>`,
                           )
                           .join(', ')}
@@ -612,7 +613,7 @@ export function ThreadDisplay() {
                   <h2 class="attachments-title">Attachments (${message.attachments.length})</h2>
                   ${message.attachments
                     .map(
-                      (attachment) => `
+                      (attachment: any) => `
                     <div class="attachment-item">
                       <span class="attachment-name">${attachment.filename}</span>
                       ${formatFileSize(attachment.size) ? ` - <span class="attachment-size">${formatFileSize(attachment.size)}</span>` : ''}
@@ -686,8 +687,8 @@ export function ThreadDisplay() {
   useEffect(() => {
     if (emailData?.latest?.tags) {
       // Check if any tag has the name 'STARRED'
-      setIsStarred(emailData.latest.tags.some((tag) => tag.name === 'STARRED'));
-      setIsImportant(emailData.latest.tags.some((tag) => tag.name === 'IMPORTANT'));
+      setIsStarred(emailData.latest.tags.some((tag: any) => tag.name === 'STARRED'));
+      setIsImportant(emailData.latest.tags.some((tag: any) => tag.name === 'IMPORTANT'));
     }
   }, [emailData?.latest?.tags]);
 
@@ -997,7 +998,7 @@ export function ThreadDisplay() {
                 type="auto"
               >
                 <div className="pb-4">
-                  {(emailData.messages || []).map((message, index) => {
+                  {(emailData.messages || []).map((message: any, index: number) => {
                     const isLastMessage = index === emailData.messages.length - 1;
                     const isReplyingToThisMessage = mode && activeReplyId === message.id;
 

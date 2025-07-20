@@ -17,7 +17,8 @@ import { ThreadContextMenu } from '@/components/context/thread-context';
 import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
 import { useMail, type Config } from '@/components/mail/use-mail';
 import { type ThreadDestination } from '@/lib/thread-actions';
-import { useThread, useThreads } from '@/hooks/use-threads';
+import { useSyncThreads as useThreads } from '@/hooks/use-sync-threads';
+import { useThread } from '@/hooks/use-sync-thread';
 import { useSearchValue } from '@/hooks/use-search-value';
 import { EmptyStateIcon } from '../icons/empty-state-svg';
 import { highlightText } from '@/lib/email-utils.client';
@@ -79,12 +80,12 @@ const Thread = memo(
         const displayStarred =
           optimisticState.optimisticStarred !== null
             ? optimisticState.optimisticStarred
-            : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'STARRED') ?? false);
+            : (getThreadData?.latest?.tags?.some((tag: any) => tag.name === 'STARRED') ?? false);
 
         const displayImportant =
           optimisticState.optimisticImportant !== null
             ? optimisticState.optimisticImportant
-            : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'IMPORTANT') ?? false);
+            : (getThreadData?.latest?.tags?.some((tag: any) => tag.name === 'IMPORTANT') ?? false);
 
         const displayUnread =
           optimisticState.optimisticRead !== null
@@ -478,7 +479,7 @@ const Thread = memo(
                           'mt-1 line-clamp-1 max-w-[50ch] overflow-hidden text-sm text-[#8C8C8C] md:max-w-[25ch]',
                         )}
                       >
-                        {latestMessage.to.map((e) => e.email).join(', ')}
+                        {latestMessage.to.map((e: any) => e.email).join(', ')}
                       </p>
                     ) : (
                       <p

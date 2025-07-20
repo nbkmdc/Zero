@@ -6,7 +6,7 @@ import { useLocation, useParams } from 'react-router';
 import { useMail } from '@/components/mail/use-mail';
 import { Categories } from '@/components/mail/mail';
 import { useShortcuts } from './use-hotkey-utils';
-import { useThreads } from '@/hooks/use-threads';
+import { useThreads } from '@/hooks/use-sync-threads';
 import { cleanSearchValue } from '@/lib/utils';
 import { m } from '@/paraglide/messages';
 import { useQueryState } from 'nuqs';
@@ -52,7 +52,7 @@ export function MailListHotkeys() {
         bulkSelected: [],
       }));
     } else if (items.length > 0) {
-      const allIds = items.map((item) => item.id);
+      const allIds = items.map((item: any) => item.id);
       setMail((prev) => ({
         ...prev,
         bulkSelected: allIds,

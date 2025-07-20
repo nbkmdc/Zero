@@ -35,7 +35,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
 
 import { cn, formatFileSize } from '@/lib/utils';
-import { useThread } from '@/hooks/use-threads';
+import { useThread } from '@/hooks/use-sync-thread';
 import { serializeFiles } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { EditorContent } from '@tiptap/react';
@@ -131,7 +131,7 @@ export function EmailComposer({
   const [threadId] = useQueryState('threadId');
   const [mode] = useQueryState('mode');
   const [isComposeOpen, setIsComposeOpen] = useQueryState('isComposeOpen');
-  const { data: emailData } = useThread(threadId ?? null);
+  const { data: emailData } = useThread(threadId || '');
   const [draftId, setDraftId] = useQueryState('draftId');
   const [aiGeneratedMessage, setAiGeneratedMessage] = useState<string | null>(null);
   const [aiIsLoading, setAiIsLoading] = useState(false);
@@ -315,7 +315,7 @@ export function EmailComposer({
       }
 
       // Add original recipients from To field
-      latestEmail.to?.forEach((recipient) => {
+      latestEmail.to?.forEach((recipient: any) => {
         const recipientEmail = recipient.email.toLowerCase();
         if (recipientEmail !== userEmail && recipientEmail !== senderEmail) {
           to.push(recipient.email);
@@ -323,7 +323,7 @@ export function EmailComposer({
       });
 
       // Add CC recipients
-      latestEmail.cc?.forEach((recipient) => {
+      latestEmail.cc?.forEach((recipient: any) => {
         const recipientEmail = recipient.email.toLowerCase();
         if (recipientEmail !== userEmail && !to.includes(recipient.email)) {
           cc.push(recipient.email);
@@ -331,7 +331,7 @@ export function EmailComposer({
       });
 
       // Add BCC recipients
-      latestEmail.bcc?.forEach((recipient) => {
+      latestEmail.bcc?.forEach((recipient: any) => {
         const recipientEmail = recipient.email.toLowerCase();
         if (
           recipientEmail !== userEmail &&
@@ -506,17 +506,17 @@ export function EmailComposer({
 
   const threadContent: ThreadContent = useMemo(() => {
     if (!emailData) return [];
-    return emailData.messages.map((message) => {
+    return emailData.messages.map((message: any) => {
       return {
         body: message.decodedBody ?? '',
         from: message.sender.name ?? message.sender.email,
-        to: message.to.reduce<string[]>((to, recipient) => {
+        to: message.to.reduce((to: string[], recipient: any) => {
           if (recipient.name) {
             to.push(recipient.name);
           }
           return to;
         }, []),
-        cc: message.cc?.reduce<string[]>((cc, recipient) => {
+        cc: message.cc?.reduce((cc: string[], recipient: any) => {
           if (recipient.name) {
             cc.push(recipient.name);
           }

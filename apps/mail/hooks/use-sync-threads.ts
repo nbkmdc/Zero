@@ -42,9 +42,9 @@ export const useSyncThreads = () => {
         pageToken: '',
       }
     });
-  }, [folder, searchValue.value, labels, syncConnection.isConnected, activeConnection?.id]);
+  }, [folder, searchValue.value, labels, syncConnection.isConnected, activeConnection?.id, sendSyncMessage, currentFolderData, setThreadList]);
 
-  const loadMore = useCallback(() => {
+  const loadMore = useCallback(async () => {
     if (!currentFolderData.nextPageToken || currentFolderData.isLoading) return;
     
     sendSyncMessage({
@@ -57,7 +57,7 @@ export const useSyncThreads = () => {
         pageToken: currentFolderData.nextPageToken,
       }
     });
-  }, [currentFolderData.nextPageToken, folder, searchValue.value, labels]);
+  }, [currentFolderData.nextPageToken, currentFolderData.isLoading, folder, searchValue.value, labels, sendSyncMessage]);
 
   useEffect(() => {
     if (syncConnection.isConnected) {
@@ -65,11 +65,20 @@ export const useSyncThreads = () => {
     }
   }, [loadThreads, syncConnection.isConnected]);
 
-  return {
-    threads: currentFolderData.threads,
+  const queryResult = {
+    refetch: loadThreads,
     isLoading: currentFolderData.isLoading,
-    isReachingEnd: !currentFolderData.nextPageToken,
-    loadThreads,
-    loadMore,
+    isFetching: currentFolderData.isLoading,
+    isFetchingNextPage: currentFolderData.isLoading && !!currentFolderData.nextPageToken,
+    hasNextPage: !!currentFolderData.nextPageToken,
   };
+
+  return [
+    queryResult,
+    currentFolderData.threads,
+    !currentFolderData.nextPageToken,
+    loadMore,
+  ] as const;
 };
+
+export const useThreads = useSyncThreads;

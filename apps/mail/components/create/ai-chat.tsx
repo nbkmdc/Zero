@@ -6,7 +6,7 @@ import { useRef, useCallback, useEffect } from 'react';
 import { Markdown } from '@react-email/components';
 import { useBilling } from '@/hooks/use-billing';
 import { TextShimmer } from '../ui/text-shimmer';
-import { useThread } from '@/hooks/use-threads';
+import { useThread } from '@/hooks/use-sync-thread';
 import { MailLabels } from '../mail/mail-list';
 import { cn, getEmailLogo } from '@/lib/utils';
 import { VoiceButton } from '../voice-button';

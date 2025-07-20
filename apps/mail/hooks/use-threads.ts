@@ -12,7 +12,7 @@ import { useTheme } from 'next-themes';
 import { useQueryState } from 'nuqs';
 import { useMemo } from 'react';
 
-export const useThreads = () => {
+export const useThreadsLegacy = () => {
   const { folder } = useParams<{ folder: string }>();
   const [searchValue] = useSearchValue();
   const [backgroundQueue] = useAtom(backgroundQueueAtom);

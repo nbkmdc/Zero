@@ -17,7 +17,7 @@ import { useTRPC } from '@/providers/query-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMutation } from '@tanstack/react-query';
 import { Trash, Plus, Unplug } from 'lucide-react';
-import { useThreads } from '@/hooks/use-threads';
+import { useThreads } from '@/hooks/use-sync-threads';
 import { useBilling } from '@/hooks/use-billing';
 import { emailProviders } from '@/lib/constants';
 import { Button } from '@/components/ui/button';

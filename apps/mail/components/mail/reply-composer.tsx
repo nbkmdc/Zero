@@ -6,7 +6,7 @@ import { useHotkeysContext } from 'react-hotkeys-hook';
 import { useTRPC } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
-import { useThread } from '@/hooks/use-threads';
+import { useThread } from '@/hooks/use-sync-thread';
 import { useSession } from '@/lib/auth-client';
 import { serializeFiles } from '@/lib/schemas';
 import { useDraft } from '@/hooks/use-drafts';
@@ -39,7 +39,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
   // Find the specific message to reply to
   const replyToMessage =
-    (messageId && emailData?.messages.find((msg) => msg.id === messageId)) || emailData?.latest;
+    (messageId && emailData?.messages.find((msg: any) => msg.id === messageId)) || emailData?.latest;
 
   // Initialize recipients and subject when mode changes
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
       }
 
       // Add original recipients from To field
-      replyToMessage.to?.forEach((recipient) => {
+      replyToMessage.to?.forEach((recipient: any) => {
         const recipientEmail = recipient.email.toLowerCase();
         if (recipientEmail !== userEmail && recipientEmail !== senderEmail) {
           to.push(recipient.email);
@@ -82,7 +82,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
       });
 
       // Add CC recipients
-      replyToMessage.cc?.forEach((recipient) => {
+      replyToMessage.cc?.forEach((recipient: any) => {
         const recipientEmail = recipient.email.toLowerCase();
         if (recipientEmail !== userEmail && !to.includes(recipient.email)) {
           cc.push(recipient.email);
