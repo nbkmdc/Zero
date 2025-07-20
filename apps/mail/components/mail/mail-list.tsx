@@ -7,14 +7,13 @@ import {
   PencilCompose,
 } from '../icons/icons';
 import { memo, useCallback, useEffect, useMemo, useRef, type ComponentProps } from 'react';
-import { useOptimisticThreadState } from '@/components/mail/optimistic-thread-state';
 import { focusedIndexAtom, useMailNavigation } from '@/hooks/use-mail-navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsFetching, type UseQueryResult } from '@tanstack/react-query';
 import type { MailSelectMode, ParsedMessage, ThreadProps } from '@/types';
 import type { ParsedDraft } from '../../../server/src/lib/driver/types';
 import { ThreadContextMenu } from '@/components/context/thread-context';
-import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
+import { useDirectActions } from '@/hooks/use-direct-actions';
 import { useMail, type Config } from '@/components/mail/use-mail';
 import { type ThreadDestination } from '@/lib/thread-actions';
 import { useThread, useThreads } from '@/hooks/use-threads';
@@ -38,7 +37,6 @@ import { useDraft } from '@/hooks/use-drafts';
 import { Check, Star } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 
-import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
 
 import { Button } from '../ui/button';
@@ -71,71 +69,29 @@ const Thread = memo(
       return { latestMessage, idToUse, cleanName };
     }, [getThreadData?.latest]);
 
-    const optimisticState = useOptimisticThreadState(idToUse ?? '');
 
-    const { displayStarred, displayImportant, displayUnread, optimisticLabels, emailContent } =
+    const { displayStarred, displayImportant, displayUnread, labels, emailContent } =
       useMemo(() => {
         const emailContent = getThreadData?.latest?.body;
-        const displayStarred =
-          optimisticState.optimisticStarred !== null
-            ? optimisticState.optimisticStarred
-            : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'STARRED') ?? false);
-
-        const displayImportant =
-          optimisticState.optimisticImportant !== null
-            ? optimisticState.optimisticImportant
-            : (getThreadData?.latest?.tags?.some((tag) => tag.name === 'IMPORTANT') ?? false);
-
-        const displayUnread =
-          optimisticState.optimisticRead !== null
-            ? !optimisticState.optimisticRead
-            : (getThreadData?.hasUnread ?? false);
-
-        let labels: { id: string; name: string }[] = [];
-        if (getThreadData?.labels) {
-          labels = [...getThreadData.labels];
-          const hasStarredLabel = labels.some((label) => label.name === 'STARRED');
-
-          if (optimisticState.optimisticStarred !== null) {
-            if (optimisticState.optimisticStarred && !hasStarredLabel) {
-              labels.push({ id: 'starred-optimistic', name: 'STARRED' });
-            } else if (!optimisticState.optimisticStarred && hasStarredLabel) {
-              labels = labels.filter((label) => label.name !== 'STARRED');
-            }
-          }
-
-          if (optimisticState.optimisticLabels) {
-            labels = labels.filter(
-              (label) => !optimisticState.optimisticLabels.removedLabelIds.includes(label.id),
-            );
-
-            optimisticState.optimisticLabels.addedLabelIds.forEach((labelId) => {
-              if (!labels.some((label) => label.id === labelId)) {
-                labels.push({ id: labelId, name: labelId });
-              }
-            });
-          }
-        }
+        const displayStarred = getThreadData?.latest?.tags?.some((tag) => tag.name === 'STARRED') ?? false;
+        const displayImportant = getThreadData?.latest?.tags?.some((tag) => tag.name === 'IMPORTANT') ?? false;
+        const displayUnread = getThreadData?.hasUnread ?? false;
+        const labels = getThreadData?.labels ?? [];
 
         return {
           displayStarred,
           displayImportant,
           displayUnread,
-          optimisticLabels: labels,
+          labels,
           emailContent,
         };
       }, [
-        optimisticState.optimisticStarred,
-        optimisticState.optimisticImportant,
-        optimisticState.optimisticRead,
         getThreadData?.latest?.tags,
         getThreadData?.hasUnread,
         getThreadData?.labels,
-        optimisticState.optimisticLabels,
       ]);
 
-    const { optimisticToggleStar, optimisticToggleImportant, optimisticMoveThreadsTo } =
-      useOptimisticActions();
+    const { directToggleStar, directToggleImportant, directMoveThreadsTo } = useDirectActions();
 
     const handleToggleStar = useCallback(
       async (e: React.MouseEvent) => {
@@ -143,9 +99,9 @@ const Thread = memo(
         if (!getThreadData || !idToUse) return;
 
         const newStarredState = !displayStarred;
-        optimisticToggleStar([idToUse], newStarredState);
+        directToggleStar([idToUse], newStarredState);
       },
-      [getThreadData, idToUse, displayStarred, optimisticToggleStar],
+      [getThreadData, idToUse, displayStarred, directToggleStar],
     );
 
     const handleToggleImportant = useCallback(
@@ -154,9 +110,9 @@ const Thread = memo(
         if (!getThreadData || !idToUse) return;
 
         const newImportantState = !displayImportant;
-        optimisticToggleImportant([idToUse], newImportantState);
+        directToggleImportant([idToUse], newImportantState);
       },
-      [getThreadData, idToUse, displayImportant, optimisticToggleImportant],
+      [getThreadData, idToUse, displayImportant, directToggleImportant],
     );
 
     const handleNext = useCallback(
@@ -178,13 +134,13 @@ const Thread = memo(
       async (destination: ThreadDestination) => {
         if (!idToUse) return;
         handleNext(idToUse);
-        optimisticMoveThreadsTo([idToUse], folder ?? '', destination);
+        directMoveThreadsTo([idToUse], folder ?? '', destination);
       },
-      [idToUse, folder, optimisticMoveThreadsTo, handleNext],
+      [idToUse, folder, directMoveThreadsTo, handleNext],
     );
 
     const { labels: threadLabels } = useThreadLabels(
-      optimisticLabels ? optimisticLabels.map((l) => l.id) : [],
+      labels ? labels.map((l) => l.id) : [],
     );
 
     const [mailState, setMail] = useMail();
@@ -265,9 +221,7 @@ const Thread = memo(
                   side={index === 0 ? 'bottom' : 'top'}
                   className="mb-1 bg-white dark:bg-[#1A1A1A]"
                 >
-                  {displayStarred
-                    ? m['common.threadDisplay.unstar']()
-                    : m['common.threadDisplay.star']()}
+                  {displayStarred ? 'Unstar' : 'Star'}
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -290,7 +244,7 @@ const Thread = memo(
                   side={index === 0 ? 'bottom' : 'top'}
                   className="dark:bg-panelDark mb-1 bg-white"
                 >
-                  {m['common.mail.toggleImportant']()}
+                  Toggle Important
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -311,7 +265,7 @@ const Thread = memo(
                   side={index === 0 ? 'bottom' : 'top'}
                   className="dark:bg-panelDark mb-1 bg-white"
                 >
-                  {m['common.threadDisplay.archive']()}
+                  Archive
                 </TooltipContent>
               </Tooltip>
               {!isFolderBin ? (
@@ -333,7 +287,7 @@ const Thread = memo(
                     side={index === 0 ? 'bottom' : 'top'}
                     className="dark:bg-panelDark mb-1 bg-white"
                   >
-                    {m['common.actions.Bin']()}
+                    Delete
                   </TooltipContent>
                 </Tooltip>
               ) : null}
@@ -439,7 +393,7 @@ const Thread = memo(
                             </span>
                           </TooltipTrigger>
                           <TooltipContent className="p-1 text-xs">
-                            {m['common.mail.replies']({ count: getThreadData.totalReplies })}
+                            {`${getThreadData.totalReplies} replies`}
                           </TooltipContent>
                         </Tooltip>
                       ) : null}
@@ -458,7 +412,7 @@ const Thread = memo(
                           <StickyNote className="h-3 w-3 fill-amber-500 stroke-amber-500 dark:fill-amber-400 dark:stroke-amber-400" />
                         </span>
                       ) : null} */}
-                      <MailLabels labels={optimisticLabels} />
+                      <MailLabels labels={labels} />
                     </div>
                     {latestMessage.receivedOn ? (
                       <p
@@ -520,7 +474,6 @@ const Thread = memo(
     }, [
       latestMessage,
       getThreadData,
-      optimisticState,
       idToUse,
       folder,
       isFolderBin,
@@ -533,12 +486,12 @@ const Thread = memo(
       isMailSelected,
       isMailBulkSelected,
       threadLabels,
-      optimisticLabels,
+      labels,
       emailContent,
     ]);
 
     return latestMessage ? (
-      !optimisticState.shouldHide && idToUse ? (
+      idToUse ? (
         <ThreadContextMenu
           threadId={idToUse}
           isInbox={isFolderInbox}
@@ -805,7 +758,7 @@ export const MailList = memo(
 
     const [, setFocusedIndex] = useAtom(focusedIndexAtom);
 
-    const { optimisticMarkAsRead } = useOptimisticActions();
+    const { directMarkAsRead } = useDirectActions();
     const handleMailClick = useCallback(
       (message: ParsedMessage) => async () => {
         const mode = getSelectMode();
@@ -821,7 +774,7 @@ export const MailList = memo(
         const messageThreadId = message.threadId ?? message.id;
         const clickedIndex = itemsRef.current.findIndex((item) => item.id === messageThreadId);
         setFocusedIndex(clickedIndex);
-        if (message.unread && autoRead) optimisticMarkAsRead([messageThreadId], true);
+        if (message.unread && autoRead) directMarkAsRead([messageThreadId], true);
         setThreadId(messageThreadId);
         setDraftId(null);
         // Don't clear activeReplyId - let ThreadDisplay handle Reply All auto-opening
@@ -831,7 +784,7 @@ export const MailList = memo(
         handleSelectMail,
         handleMouseEnter,
         setFocusedIndex,
-        optimisticMarkAsRead,
+        directMarkAsRead,
         setThreadId,
         setDraftId,
         settingsData,
@@ -995,7 +948,7 @@ export const MailLabels = memo(
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent className="hidden px-1 py-0 text-xs">
-                  {m['common.notes.title']()}
+                  Notes
                 </TooltipContent>
               </Tooltip>
             );

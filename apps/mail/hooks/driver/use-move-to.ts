@@ -1,11 +1,11 @@
-import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
+import { useDirectActions } from '@/hooks/use-direct-actions';
 import type { MoveThreadOptions } from '@/lib/thread-actions';
 
 const useMoveTo = () => {
-  const { optimisticMoveThreadsTo } = useOptimisticActions();
+  const { directMoveThreadsTo } = useDirectActions();
 
   const mutate = ({ threadIds, currentFolder, destination }: MoveThreadOptions) => {
-    optimisticMoveThreadsTo(threadIds, currentFolder, destination);
+    directMoveThreadsTo(threadIds, currentFolder, destination);
   };
 
   return {

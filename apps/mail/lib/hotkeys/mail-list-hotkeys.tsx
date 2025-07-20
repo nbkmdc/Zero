@@ -1,4 +1,4 @@
-import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
+import { useDirectActions } from '@/hooks/use-direct-actions';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { enhancedKeyboardShortcuts } from '@/config/shortcuts';
 import { useSearchValue } from '@/hooks/use-search-value';
@@ -8,7 +8,6 @@ import { Categories } from '@/components/mail/mail';
 import { useShortcuts } from './use-hotkey-utils';
 import { useThreads } from '@/hooks/use-threads';
 import { cleanSearchValue } from '@/lib/utils';
-import { m } from '@/paraglide/messages';
 import { useQueryState } from 'nuqs';
 import { toast } from 'sonner';
 
@@ -26,13 +25,13 @@ export function MailListHotkeys() {
   const shouldUseHover = mail.bulkSelected.length === 0;
 
   const {
-    optimisticMarkAsRead,
-    optimisticMarkAsUnread,
-    optimisticMoveThreadsTo,
-    optimisticToggleImportant,
-    optimisticDeleteThreads,
-    optimisticToggleStar,
-  } = useOptimisticActions();
+    directMarkAsRead,
+    directMarkAsUnread,
+    directMoveThreadsTo,
+    directToggleImportant,
+    directDeleteThreads,
+    directToggleStar,
+  } = useDirectActions();
 
   useEffect(() => {
     const handleEmailHover = (event: CustomEvent<{ id: string | null }>) => {
@@ -58,114 +57,114 @@ export function MailListHotkeys() {
         bulkSelected: allIds,
       }));
     } else {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
     }
   }, [items, mail]);
 
   const markAsRead = useCallback(() => {
     if (shouldUseHover && hoveredEmailId.current) {
-      optimisticMarkAsRead([hoveredEmailId.current]);
+      directMarkAsRead([hoveredEmailId.current]);
       return;
     }
 
     const idsToMark = mail.bulkSelected;
     if (idsToMark.length === 0) {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
       return;
     }
 
-    optimisticMarkAsRead(idsToMark);
-  }, [mail.bulkSelected, optimisticMarkAsRead, shouldUseHover]);
+    directMarkAsRead(idsToMark);
+  }, [mail.bulkSelected, directMarkAsRead, shouldUseHover]);
 
   const markAsUnread = useCallback(() => {
     if (shouldUseHover && hoveredEmailId.current) {
-      optimisticMarkAsUnread([hoveredEmailId.current]);
+      directMarkAsUnread([hoveredEmailId.current]);
       return;
     }
 
     const idsToMark = mail.bulkSelected;
     if (idsToMark.length === 0) {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
       return;
     }
 
-    optimisticMarkAsUnread(idsToMark);
-  }, [mail.bulkSelected, optimisticMarkAsUnread, shouldUseHover]);
+    directMarkAsUnread(idsToMark);
+  }, [mail.bulkSelected, directMarkAsUnread, shouldUseHover]);
 
   const markAsImportant = useCallback(() => {
     if (shouldUseHover && hoveredEmailId.current) {
-      optimisticToggleImportant([hoveredEmailId.current], true);
+      directToggleImportant([hoveredEmailId.current], true);
       return;
     }
 
     const idsToMark = mail.bulkSelected;
     if (idsToMark.length === 0) {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
       return;
     }
 
-    optimisticToggleImportant(idsToMark, true);
-  }, [mail.bulkSelected, optimisticToggleImportant, shouldUseHover]);
+    directToggleImportant(idsToMark, true);
+  }, [mail.bulkSelected, directToggleImportant, shouldUseHover]);
 
   const archiveEmail = useCallback(async () => {
     if (shouldUseHover && hoveredEmailId.current) {
-      optimisticMoveThreadsTo([hoveredEmailId.current], folder, 'archive');
+      directMoveThreadsTo([hoveredEmailId.current], folder, 'archive');
       return;
     }
 
     const idsToArchive = mail.bulkSelected;
     if (idsToArchive.length === 0) {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
       return;
     }
 
-    optimisticMoveThreadsTo(idsToArchive, folder, 'archive');
-  }, [mail.bulkSelected, folder, optimisticMoveThreadsTo, shouldUseHover]);
+    directMoveThreadsTo(idsToArchive, folder, 'archive');
+  }, [mail.bulkSelected, folder, directMoveThreadsTo, shouldUseHover]);
 
   const bulkArchive = useCallback(() => {
     if (shouldUseHover && hoveredEmailId.current) {
-      optimisticMoveThreadsTo([hoveredEmailId.current], folder, 'archive');
+      directMoveThreadsTo([hoveredEmailId.current], folder, 'archive');
       return;
     }
 
     const idsToArchive = mail.bulkSelected;
     if (idsToArchive.length === 0) {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
       return;
     }
 
-    optimisticMoveThreadsTo(idsToArchive, folder, 'archive');
-  }, [mail.bulkSelected, folder, optimisticMoveThreadsTo, shouldUseHover]);
+    directMoveThreadsTo(idsToArchive, folder, 'archive');
+  }, [mail.bulkSelected, folder, directMoveThreadsTo, shouldUseHover]);
 
   const bulkDelete = useCallback(() => {
     if (shouldUseHover && hoveredEmailId.current) {
-      optimisticDeleteThreads([hoveredEmailId.current], folder);
+      directDeleteThreads([hoveredEmailId.current], folder);
       return;
     }
 
     const idsToDelete = mail.bulkSelected;
     if (idsToDelete.length === 0) {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
       return;
     }
 
-    optimisticDeleteThreads(idsToDelete, folder);
-  }, [mail.bulkSelected, folder, optimisticDeleteThreads, shouldUseHover]);
+    directDeleteThreads(idsToDelete, folder);
+  }, [mail.bulkSelected, folder, directDeleteThreads, shouldUseHover]);
 
   const bulkStar = useCallback(() => {
     if (shouldUseHover && hoveredEmailId.current) {
-      optimisticToggleStar([hoveredEmailId.current], true);
+      directToggleStar([hoveredEmailId.current], true);
       return;
     }
 
     const idsToStar = mail.bulkSelected;
     if (idsToStar.length === 0) {
-      toast.info(m['common.mail.noEmailsToSelect']());
+      toast.info('No emails to select');
       return;
     }
 
-    optimisticToggleStar(idsToStar, true);
-  }, [mail.bulkSelected, optimisticToggleStar, shouldUseHover]);
+    directToggleStar(idsToStar, true);
+  }, [mail.bulkSelected, directToggleStar, shouldUseHover]);
 
   const exitSelectionMode = useCallback(() => {
     setMail((prev) => ({
