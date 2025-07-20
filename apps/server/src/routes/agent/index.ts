@@ -1091,23 +1091,39 @@ export class ZeroAgent extends AIChatAgent<typeof env> {
                 result = await driver.markAsUnread(threadIds);
                 break;
               case 'toggle_star':
-                result = await driver.modifyLabels(threadIds, ['STARRED'], []);
+                result = await driver.modifyLabels(threadIds, params.starred ? ['STARRED'] : [], params.starred ? [] : ['STARRED']);
+                break;
+              case 'toggle_important':
+                result = await driver.modifyLabels(threadIds, params.important ? ['IMPORTANT'] : [], params.important ? [] : ['IMPORTANT']);
                 break;
               case 'modify_labels':
                 result = await driver.modifyLabels(threadIds, params.addLabels || [], params.removeLabels || []);
+                break;
+              case 'bulk_delete':
+                result = await driver.bulkDelete(threadIds);
+                break;
+              case 'bulk_archive':
+                result = await driver.bulkArchive(threadIds);
                 break;
               default:
                 console.warn('Unknown sync action:', action);
             }
             
             this.broadcast(JSON.stringify({
-              type: OutgoingMessageType.Mail_List,
-              folder: 'inbox',
-              threads: [],
-              nextPageToken: null,
+              type: 'sync_action_complete',
+              action,
+              threadIds,
+              success: true,
             }));
           } catch (error) {
             console.error('sync_action error:', error);
+            this.broadcast(JSON.stringify({
+              type: 'sync_action_complete',
+              action: data.action,
+              threadIds: data.threadIds,
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            }));
           }
           break;
         }

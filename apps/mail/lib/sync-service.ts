@@ -55,6 +55,10 @@ export function useSyncService(connectionId: string | null) {
               [data.threadId]: data.thread
             }));
             break;
+            
+          case 'sync_action_complete':
+            console.log('Sync action completed:', data);
+            break;
         }
       } catch (error) {
         console.error('Sync service message error:', error);

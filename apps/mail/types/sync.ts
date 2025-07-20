@@ -24,3 +24,11 @@ export enum SyncActionType {
   BULK_DELETE = 'bulk_delete',
   BULK_ARCHIVE = 'bulk_archive',
 }
+
+export type SyncActionCompleteMessage = {
+  type: 'sync_action_complete';
+  action: string;
+  threadIds: string[];
+  success: boolean;
+  error?: string;
+};
