@@ -45,6 +45,12 @@ export type IncomingMessage =
   | {
       type: IncomingMessageType.Mail_Get;
       threadId: string;
+    }
+  | {
+      type: 'sync_action';
+      action: string;
+      threadIds: string[];
+      params: any;
     };
 
 export type OutgoingMessage =
@@ -62,10 +68,13 @@ export type OutgoingMessage =
       type: OutgoingMessageType.ChatClear;
     }
   | {
-      type: OutgoingMessageType.Mail_List;
-      folder: string;
-    }
-  | {
       type: OutgoingMessageType.Mail_Get;
       threadId: string;
+      thread: any;
+    }
+  | {
+      type: OutgoingMessageType.Mail_List;
+      folder: string;
+      threads: any[];
+      nextPageToken: string | null;
     };

@@ -58,6 +58,9 @@ export default defineConfig({
     postcss: {
       plugins: [tailwindcss()],
     },
+    modules: {
+      localsConvention: 'camelCase',
+    },
   },
   //   ssr: {
   //     optimizeDeps: {
