@@ -160,7 +160,7 @@ export function useDirectActions() {
   );
 
   const directDeleteThreads = useCallback(
-    async (threadIds: string[], currentFolder: string) => {
+    async (threadIds: string[], _currentFolder: string) => {
       if (!threadIds.length) return;
 
       try {

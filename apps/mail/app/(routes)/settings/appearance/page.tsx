@@ -21,7 +21,6 @@ import { useSettings } from '@/hooks/use-settings';
 import { Laptop, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
-import { m } from '@/paraglide/messages';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import { toast } from 'sonner';

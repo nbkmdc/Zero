@@ -1,5 +1,4 @@
 import { useCommandPalette } from '@/components/context/command-palette-context';
-import { useDirectActions } from '@/hooks/use-direct-actions';
 import { enhancedKeyboardShortcuts } from '@/config/shortcuts';
 import { useShortcuts } from './use-hotkey-utils';
 import { useQueryState } from 'nuqs';
