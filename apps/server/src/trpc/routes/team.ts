@@ -8,14 +8,13 @@ export const teamRouter = router({
     .query(async ({ input, ctx }) => {
       try {
         const { organizationId } = input;
+        console.log('listTeams input', { organizationId });
         const teams = await ctx.c.var.auth.api.listOrganizationTeams({
           headers: ctx.c.req.raw.headers,
-          body: {
-            organizationId,
-          },
+          body: {}, // omit organizationId to test default behavior
         });
-        console.log('teams', teams);
-        return { teams } as const;
+        console.log('teams raw response', teams, typeof teams, Array.isArray(teams));
+        return { teams: Array.isArray(teams) ? teams : [] } as const;
       } catch (error) {
         console.error(error);
         throw new TRPCError({
@@ -29,13 +28,16 @@ export const teamRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const { organizationId, name } = input;
+        console.log('createTeam input', { organizationId, name });
         const team = await ctx.c.var.auth.api.createTeam({
-          organizationId,
-          name,
+          body: {
+            organizationId,
+            name,
+          },
         });
         return { success: true, id: team.id } as const;
       } catch (error) {
-        console.error(error);
+        console.error('createTeam error', error, error?.body);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to create team',

@@ -289,8 +289,8 @@ export const team = createTable('team', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   organizationId: text('organizationId').references(() => organization.id),
-  created_at: timestamp('createdAt').notNull(),
-  updated_at: timestamp('updatedAt'),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt'),
 });
 
 export const oauthApplication = createTable(

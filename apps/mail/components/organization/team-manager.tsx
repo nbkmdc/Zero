@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { useEffect } from 'react';
 
 const schema = z.object({
   name: z.string().min(2, 'Team name is required'),
@@ -53,7 +54,9 @@ export function TeamManager({ orgId }: TeamManagerProps) {
   const createTeamMutation = useMutation(trpc.team.createTeam.mutationOptions());
   const updateTeamMutation = useMutation(trpc.team.updateTeam.mutationOptions());
   const deleteTeamMutation = useMutation(trpc.team.deleteTeam.mutationOptions());
-  const updateMemberMutation = useMutation(trpc.organization.updateMember.mutationOptions());
+  const addTeamMemberMutation = useMutation(trpc.team.addTeamMember.mutationOptions());
+  const removeTeamMemberMutation = useMutation(trpc.team.removeTeamMember.mutationOptions());
+  const listTeamMembersQuery = (teamId: string) => trpc.team.listTeamMembers.queryOptions({ teamId });
 
   async function onSubmit(values: z.infer<typeof schema>) {
     if (!orgId) return;
@@ -89,38 +92,6 @@ export function TeamManager({ orgId }: TeamManagerProps) {
     }
   }
 
-  async function assignMemberToTeam(memberId: string, teamId: string) {
-    if (!orgId) return;
-
-    try {
-      await updateMemberMutation.mutateAsync({
-        organizationId: orgId,
-        memberId,
-        teamId,
-      });
-      toast.success('Member assigned to team');
-      refetchMembers();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to assign member');
-    }
-  }
-
-  async function removeMemberFromTeam(memberId: string) {
-    if (!orgId) return;
-
-    try {
-      await updateMemberMutation.mutateAsync({
-        organizationId: orgId,
-        memberId,
-        teamId: null,
-      });
-      toast.success('Member removed from team');
-      refetchMembers();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to remove member');
-    }
-  }
-
   function toggleTeamExpansion(teamId: string) {
     const newExpanded = new Set(expandedTeams);
     if (newExpanded.has(teamId)) {
@@ -131,17 +102,13 @@ export function TeamManager({ orgId }: TeamManagerProps) {
     setExpandedTeams(newExpanded);
   }
 
-  function getTeamMembers(teamId: string) {
-    return membersData?.members.filter((m) => m.teamId === teamId) || [];
-  }
-
-  function getUnassignedMembers() {
-    return membersData?.members.filter((m) => !m.teamId) || [];
-  }
-
   function EditableRow({ team }: { team: Team }) {
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(team.name);
+    const { data: teamMembersData, refetch: refetchTeamMembers } = useQuery({
+      ...listTeamMembersQuery(team.id),
+      enabled: !!team.id,
+    }) as any;
 
     async function save() {
       if (!name.trim() || name === team.name || !orgId) {
@@ -154,7 +121,7 @@ export function TeamManager({ orgId }: TeamManagerProps) {
           organizationId: orgId,
           teamId: team.id,
           name,
-        });
+        } as any);
         toast.success('Team updated');
         refetchTeams();
         setEditing(false);
@@ -163,7 +130,45 @@ export function TeamManager({ orgId }: TeamManagerProps) {
       }
     }
 
-    const teamMembers = getTeamMembers(team.id);
+    async function assignMemberToTeam(memberId: string) {
+      if (!team.id) return;
+      try {
+        await addTeamMemberMutation.mutateAsync({
+          teamId: team.id,
+          userId: memberId,
+        } as any);
+        toast.success('Member assigned to team');
+        refetchTeamMembers();
+        refetchMembers();
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to assign member');
+      }
+    }
+    async function removeMemberFromTeam(memberId: string) {
+      if (!team.id) return;
+      try {
+        await removeTeamMemberMutation.mutateAsync({
+          teamId: team.id,
+          userId: memberId,
+        } as any);
+        toast.success('Member removed from team');
+        refetchTeamMembers();
+        refetchMembers();
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to remove member');
+      }
+    }
+
+    function getTeamMembers() {
+      return ((teamMembersData as any)?.members) || [];
+    }
+
+    function getUnassignedMembers() {
+      // Members not in any team (fallback to org members if needed)
+      return membersData?.members.filter((m) => !m.teamId) || [];
+    }
+
+    const teamMembers = getTeamMembers();
     const isExpanded = expandedTeams.has(team.id);
 
     return (
@@ -239,7 +244,7 @@ export function TeamManager({ orgId }: TeamManagerProps) {
                 size="icon"
                 variant="ghost"
                 className="h-6 w-6"
-                onClick={() => assignMemberToTeam(member.id, team.id)}
+                onClick={() => assignMemberToTeam(member.id)}
                 aria-label="Add to team"
               >
                 <UserPlus className="h-3 w-3" />
@@ -276,7 +281,7 @@ export function TeamManager({ orgId }: TeamManagerProps) {
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <div className="space-y-2">
-              {teamsData?.teams.map((t) => <EditableRow key={t.id} team={t} />)}
+              {(teamsData?.teams ?? []).map((t) => <EditableRow key={t.id} team={t} />)}
             </div>
           )}
         </CardContent>
