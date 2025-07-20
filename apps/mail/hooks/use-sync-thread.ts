@@ -6,7 +6,7 @@ import { useCallback, useEffect } from 'react';
 import { IncomingMessageType } from '@/types/sync';
 
 export const useSyncThread = (threadId: string) => {
-  const [threads, setThreads] = useAtom(threadAtom);
+  const [threads] = useAtom(threadAtom);
   const syncConnection = useAtomValue(syncConnectionAtom);
   const { data: activeConnection } = useActiveConnection();
   const { sendSyncMessage } = useSyncService(activeConnection?.id || null);

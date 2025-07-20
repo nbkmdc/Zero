@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue } from 'jotai';
-import { threadListAtom, threadAtom, syncConnectionAtom } from '@/store/sync';
+import { threadListAtom, syncConnectionAtom } from '@/store/sync';
 import { useSyncService } from '@/lib/sync-service';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { useSearchValue } from '@/hooks/use-search-value';

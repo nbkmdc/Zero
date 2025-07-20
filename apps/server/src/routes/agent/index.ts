@@ -524,7 +524,6 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
         },
       });
 
-      const duration = Date.now() - startTime;
 
       return { result: answer.response, data: answer.data };
     } catch (error) {
@@ -1082,28 +1081,27 @@ export class ZeroAgent extends AIChatAgent<typeof env> {
             const driver = new ZeroDriver(this.ctx, this.env);
             await driver.setupAuth();
             
-            let result;
             switch (action) {
               case 'mark_read':
-                result = await driver.markAsRead(threadIds);
+                await driver.markAsRead(threadIds);
                 break;
               case 'mark_unread':
-                result = await driver.markAsUnread(threadIds);
+                await driver.markAsUnread(threadIds);
                 break;
               case 'toggle_star':
-                result = await driver.modifyLabels(threadIds, params.starred ? ['STARRED'] : [], params.starred ? [] : ['STARRED']);
+                await driver.modifyLabels(threadIds, params.starred ? ['STARRED'] : [], params.starred ? [] : ['STARRED']);
                 break;
               case 'toggle_important':
-                result = await driver.modifyLabels(threadIds, params.important ? ['IMPORTANT'] : [], params.important ? [] : ['IMPORTANT']);
+                await driver.modifyLabels(threadIds, params.important ? ['IMPORTANT'] : [], params.important ? [] : ['IMPORTANT']);
                 break;
               case 'modify_labels':
-                result = await driver.modifyLabels(threadIds, params.addLabels || [], params.removeLabels || []);
+                await driver.modifyLabels(threadIds, params.addLabels || [], params.removeLabels || []);
                 break;
               case 'bulk_delete':
-                result = await driver.bulkDelete(threadIds);
+                await driver.bulkDelete(threadIds);
                 break;
               case 'bulk_archive':
-                result = await driver.bulkArchive(threadIds);
+                await driver.bulkArchive(threadIds);
                 break;
               default:
                 console.warn('Unknown sync action:', action);

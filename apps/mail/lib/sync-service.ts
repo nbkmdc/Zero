@@ -1,6 +1,6 @@
 import { usePartySocket } from 'partysocket/react';
 import { useAtom, useSetAtom } from 'jotai';
-import { syncConnectionAtom, threadsAtom, threadAtom, threadListAtom } from '@/store/sync';
+import { syncConnectionAtom, threadAtom, threadListAtom } from '@/store/sync';
 import { IncomingMessageType, OutgoingMessageType } from '@/types/sync';
 
 export enum SyncMessageType {
@@ -17,7 +17,6 @@ export type SyncMessage = {
 
 export function useSyncService(connectionId: string | null) {
   const [syncConnection, setSyncConnection] = useAtom(syncConnectionAtom);
-  const setThreads = useSetAtom(threadsAtom);
   const setThread = useSetAtom(threadAtom);
   const setThreadList = useSetAtom(threadListAtom);
 

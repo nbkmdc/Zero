@@ -4,16 +4,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSyncService } from '@/lib/sync-service';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { SyncActionType } from '@/types/sync';
-import { backgroundQueueAtom } from '@/store/backgroundQueue';
-import type { ThreadDestination } from '@/lib/thread-actions';
 import { useAtom } from 'jotai';
-import { useQueryState } from 'nuqs';
 import { useMail } from '@/components/mail/use-mail';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
 import posthog from 'posthog-js';
-import * as m from '@/paraglide/messages';
-import { ActionType } from '@/lib/optimistic-actions-manager';
 
 const actionEventNames: Record<string, (params: any) => string> = {
   READ: () => 'mail_mark_read',
@@ -27,11 +22,8 @@ export function useSyncOptimisticActions() {
   const queryClient = useQueryClient();
   const { data: activeConnection } = useActiveConnection();
   const { sendSyncMessage } = useSyncService(activeConnection?.id || null);
-  const [, setBackgroundQueue] = useAtom(backgroundQueueAtom);
   const [, addOptimisticAction] = useAtom(addOptimisticActionAtom);
   const [, removeOptimisticAction] = useAtom(removeOptimisticActionAtom);
-  const [threadId, setThreadId] = useQueryState('threadId');
-  const [, setActiveReplyId] = useQueryState('activeReplyId');
   const [mail, setMail] = useMail();
 
   const generatePendingActionId = () =>
@@ -53,7 +45,7 @@ export function useSyncOptimisticActions() {
     undo,
     toastMessage,
   }: {
-    type: keyof typeof ActionType;
+    type: string;
     threadIds: string[];
     params: PendingAction['params'];
     optimisticId: string;
@@ -90,7 +82,7 @@ export function useSyncOptimisticActions() {
         await execute();
         const typeActions = optimisticActionsManager.pendingActionsByType.get(type);
 
-        const eventName = actionEventNames[type]?.(params);
+        const eventName = actionEventNames[type as keyof typeof actionEventNames]?.(params);
         if (eventName) {
           posthog.capture(eventName);
         }
