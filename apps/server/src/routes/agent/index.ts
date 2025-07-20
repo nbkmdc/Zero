@@ -501,7 +501,6 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
     }
 
     try {
-      const startTime = Date.now();
       console.log(`[inboxRag] Executing AI search with parameters:`, {
         query,
         max_num_results: 3,

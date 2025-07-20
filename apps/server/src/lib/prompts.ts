@@ -2,7 +2,6 @@ import { format } from 'date-fns';
 import { Tools } from '../types';
 import dedent from 'dedent';
 
-const CATEGORY_IDS = ['Important', 'All Mail', 'Personal', 'Updates', 'Promotions', 'Unread'];
 
 export const colors = [
   '#000000',
