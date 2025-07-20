@@ -18,7 +18,7 @@ import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
 import { useMail, type Config } from '@/components/mail/use-mail';
 import { type ThreadDestination } from '@/lib/thread-actions';
 import { useSyncThreads as useThreads } from '@/hooks/use-sync-threads';
-import { useThread } from '@/hooks/use-sync-thread';
+import { useSyncThread as useThread } from '@/hooks/use-sync-thread';
 import { useSearchValue } from '@/hooks/use-search-value';
 import { EmptyStateIcon } from '../icons/empty-state-svg';
 import { highlightText } from '@/lib/email-utils.client';
