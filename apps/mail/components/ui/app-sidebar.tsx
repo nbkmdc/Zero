@@ -20,7 +20,6 @@ import { useAIFullScreen } from './ai-sidebar';
 import { useStats } from '@/hooks/use-stats';
 import { useLocation } from 'react-router';
 
-import { m } from '@/paraglide/messages';
 import { FOLDERS } from '@/lib/utils';
 import { NavUser } from './nav-user';
 import { NavMain } from './nav-main';
@@ -183,7 +182,7 @@ function ComposeButton() {
             <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
               <PencilCompose className="fill-white" />
               <div className="justify-start text-sm leading-none text-white">
-                {m['common.commandPalette.commands.newEmail']()}
+                Compose
               </div>
             </div>
           )}

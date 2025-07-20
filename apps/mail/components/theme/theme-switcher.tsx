@@ -7,7 +7,6 @@ import {
 } from '@/components/ui/select';
 import { Laptop, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { m } from '@/paraglide/messages';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 interface ModeToggleProps {
@@ -56,7 +55,7 @@ export function ModeToggle({ className }: ModeToggleProps) {
             {theme === 'dark' && <Moon className="h-4 w-4" />}
             {theme === 'light' && <Sun className="h-4 w-4" />}
             {theme === 'system' && <Laptop className="h-4 w-4" />}
-            {m[`common.themes.${theme as 'dark' | 'light' | 'system'}`]()}
+            {theme}
           </div>
         </SelectValue>
       </SelectTrigger>
@@ -64,19 +63,19 @@ export function ModeToggle({ className }: ModeToggleProps) {
         <SelectItem value="dark">
           <div className="flex items-center gap-2">
             <Moon className="h-4 w-4" />
-            {m['common.themes.dark']()}
+            Dark
           </div>
         </SelectItem>
         <SelectItem value="system">
           <div className="flex items-center gap-2">
             <Laptop className="h-4 w-4" />
-            {m['common.themes.system']()}
+            System
           </div>
         </SelectItem>
         <SelectItem value="light">
           <div className="flex items-center gap-2">
             <Sun className="h-4 w-4" />
-            {m['common.themes.light']()}
+            Light
           </div>
         </SelectItem>
       </SelectContent>

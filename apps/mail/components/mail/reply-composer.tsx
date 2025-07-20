@@ -10,7 +10,6 @@ import { useThread } from '@/hooks/use-threads';
 import { useSession } from '@/lib/auth-client';
 import { serializeFiles } from '@/lib/schemas';
 import { useDraft } from '@/hooks/use-drafts';
-import { m } from '@/paraglide/messages';
 import type { Sender } from '@/types';
 import { useQueryState } from 'nuqs';
 import { useEffect } from 'react';
@@ -206,10 +205,10 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
       // Reset states
       setMode(null);
       await refetch();
-      toast.success(m['pages.createEmail.emailSent']());
+      toast.success('Email sent successfully');
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error(m['pages.createEmail.failedToSendEmail']());
+      toast.error('Failed to send email');
     }
   };
 

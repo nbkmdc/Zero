@@ -56,7 +56,6 @@ import { Input } from '@/components/ui/input';
 
 import { cn } from '@/lib/utils';
 
-import { m } from '@/paraglide/messages';
 import { useQueryState } from 'nuqs';
 import { useAtom } from 'jotai';
 import { toast } from 'sonner';
@@ -507,7 +506,7 @@ export function MailLayout() {
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {m['common.actions.exitSelectionModeEsc']()}
+                              Exit selection mode (Esc)
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -524,6 +523,26 @@ export function MailLayout() {
                     >
                       <RefreshCcw className="text-muted-foreground h-4 w-4 cursor-pointer" />
                     </Button>
+                    {mail.bulkSelected.length > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => {
+                                setMail({ ...mail, bulkSelected: [] });
+                              }}
+                              className="flex h-6 items-center gap-1 rounded-md bg-[#313131] px-2 text-xs text-[#A0A0A0] hover:bg-[#252525]"
+                            >
+                              <X className="h-3 w-3 fill-[#A0A0A0]" />
+                              <span>esc</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Exit selection mode (Esc)
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -644,13 +663,7 @@ export const Categories = () => {
   const categories = categorySettings.map((cat) => {
     const base = {
       id: cat.id,
-      name: (() => {
-        const key = `common.mailCategories.${cat.id
-          .split(' ')
-          .map((w, i) => (i === 0 ? w.toLowerCase() : w))
-          .join('')}` as keyof typeof m;
-        return m[key] && typeof m[key] === 'function' ? (m[key] as () => string)() : cat.name;
-      })(),
+      name: cat.name,
       searchValue: cat.searchValue,
     } as const;
 

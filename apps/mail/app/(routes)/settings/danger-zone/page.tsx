@@ -27,7 +27,7 @@ const CONFIRMATION_TEXT = 'DELETE';
 
 const formSchema = z.object({
   confirmText: z.string().refine((val) => val === CONFIRMATION_TEXT, {
-    message: m['pages.settings.dangerZone.confirmation'](),
+    message: 'Please type DELETE to confirm',
   }),
 });
 
@@ -47,7 +47,7 @@ function DeleteAccountDialog() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.confirmText !== CONFIRMATION_TEXT)
-      return toast.error(m['pages.settings.dangerZone.confirmation']());
+      return toast.error('Please type DELETE to confirm');
 
     await deleteAccount(void 0, {
       onSuccess: async ({ success, message }) => {
@@ -58,14 +58,14 @@ function DeleteAccountDialog() {
           await clear();
         } catch (error) {
           console.error('Failed to delete account:', error);
-          toast.error(m['pages.settings.dangerZone.error']());
+          toast.error('Failed to delete account');
         }
-        toast.success(m['pages.settings.dangerZone.deleted']());
+        toast.success('Account deleted successfully');
         window.location.href = '/';
       },
       onError: (error) => {
         console.error('Failed to delete account:', error);
-        toast.error(m['pages.settings.dangerZone.error']());
+        toast.error('Failed to delete account');
       },
       onSettled: () => form.reset(),
     });
@@ -74,17 +74,17 @@ function DeleteAccountDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive">{m['pages.settings.dangerZone.deleteAccount']()}</Button>
+        <Button variant="destructive">Delete Account</Button>
       </DialogTrigger>
       <DialogContent showOverlay>
         <DialogHeader>
-          <DialogTitle>{m['pages.settings.dangerZone.title']()}</DialogTitle>
-          <DialogDescription>{m['pages.settings.dangerZone.description']()}</DialogDescription>
+          <DialogTitle>Danger Zone</DialogTitle>
+          <DialogDescription>Permanently delete your account and all associated data</DialogDescription>
         </DialogHeader>
 
         <div className="border-destructive/50 bg-destructive/10 mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-red-600 dark:text-red-400">
           <AlertTriangle className="h-4 w-4" />
-          <span>{m['pages.settings.dangerZone.warning']()}</span>
+          <span>This action cannot be undone. All your data will be permanently deleted.</span>
         </div>
 
         <Form {...form}>
@@ -94,7 +94,7 @@ function DeleteAccountDialog() {
               name="confirmText"
               render={({ field }) => (
                 <FormItem>
-                  <FormDescription>{m['pages.settings.dangerZone.confirmation']()}</FormDescription>
+                  <FormDescription>Please type DELETE to confirm</FormDescription>
                   <FormControl>
                     <Input placeholder="DELETE" {...field} />
                   </FormControl>
@@ -105,8 +105,8 @@ function DeleteAccountDialog() {
             <div className="flex justify-end">
               <Button type="submit" variant="destructive" disabled={isPending}>
                 {isPending
-                  ? m['pages.settings.dangerZone.deleting']()
-                  : m['pages.settings.dangerZone.deleteAccount']()}
+                  ? 'Deleting...'
+                  : 'Delete Account'}
               </Button>
             </div>
           </form>
@@ -120,8 +120,8 @@ export default function DangerPage() {
   return (
     <div className="grid gap-6">
       <SettingsCard
-        title={m['pages.settings.dangerZone.title']()}
-        description={m['pages.settings.dangerZone.description']()}
+        title="Danger Zone"
+        description="Permanently delete your account and all associated data"
       >
         <DeleteAccountDialog />
       </SettingsCard>

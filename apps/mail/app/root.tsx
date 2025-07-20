@@ -21,7 +21,6 @@ import { getLocale } from '@/paraglide/runtime';
 import { siteConfig } from '@/lib/site-config';
 import { signOut } from '@/lib/auth-client';
 import type { Route } from './+types/root';
-import { m } from '@/paraglide/messages';
 import { ArrowLeft } from 'lucide-react';
 import superjson from 'superjson';
 import './globals.css';
@@ -179,9 +178,9 @@ function NotFound() {
         {/* Message */}
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">
-            {m['pages.error.notFound.title']()}
+            Page Not Found
           </h2>
-          <p className="text-muted-foreground">{m['pages.error.notFound.description']()}</p>
+          <p className="text-muted-foreground">The requested page could not be found.</p>
         </div>
 
         {/* Buttons */}
@@ -192,7 +191,7 @@ function NotFound() {
             className="text-muted-foreground gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            {m['pages.error.notFound.goBack']()}
+            Go Back
           </Button>
         </div>
       </div>

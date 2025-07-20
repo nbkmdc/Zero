@@ -186,7 +186,7 @@ export function NavMain({ items }: NavMainProps) {
           <>
             <SidebarMenuButton
               onClick={() => show()}
-              tooltip={state === 'collapsed' ? m['common.commandPalette.groups.help']() : undefined}
+              tooltip={state === 'collapsed' ? 'Help' : undefined}
               className="hover:bg-subtleWhite flex cursor-pointer items-center dark:hover:bg-[#202020]"
             >
               <OldPhone className="relative mr-2.5 h-2 w-2 fill-[#8F8F8F]" />
@@ -199,7 +199,7 @@ export function NavMain({ items }: NavMainProps) {
               url={'https://feedback.0.email'}
               icon={MessageSquare}
               target={'_blank'}
-              title={m['navigation.sidebar.feedback']()}
+              title="Feedback"
             />
           </>
         ) : null}

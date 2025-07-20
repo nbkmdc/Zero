@@ -53,7 +53,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { format, subDays } from 'date-fns';
 import { VisuallyHidden } from 'radix-ui';
-import { m } from '@/paraglide/messages';
 import { Pencil2 } from '../icons/icons';
 import { Button } from '../ui/button';
 import { useQueryState } from 'nuqs';
@@ -1885,8 +1884,8 @@ export function CommandPalette({ children }: { children: React.ReactNode }) {
         }}
       >
         <VisuallyHidden.VisuallyHidden>
-          <DialogTitle>{m['common.commandPalette.title']()}</DialogTitle>
-          <DialogDescription>{m['common.commandPalette.description']()}</DialogDescription>
+          <DialogTitle>Command Palette</DialogTitle>
+          <DialogDescription>Search and execute commands</DialogDescription>
         </VisuallyHidden.VisuallyHidden>
         {renderView()}
       </CommandDialog>

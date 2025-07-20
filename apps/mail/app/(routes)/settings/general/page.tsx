@@ -72,7 +72,7 @@ const TimezoneSelect = memo(
           <div className="px-3 py-2">
             <input
               className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder={m['pages.settings.general.selectTimezone']()}
+              placeholder="Select timezone"
               value={timezoneSearch}
               onChange={(e) => setTimezoneSearch(e.target.value)}
             />
@@ -81,7 +81,7 @@ const TimezoneSelect = memo(
             <div className="p-1">
               {filteredTimezones.length === 0 && (
                 <div className="text-muted-foreground p-2 text-center text-sm">
-                  {m['pages.settings.general.noResultsFound']()}
+                  No results found
                 </div>
               )}
               {filteredTimezones.map((timezone) => (
@@ -165,10 +165,10 @@ export default function GeneralPage() {
       await saveUserSettings(values);
       await refetchSettings();
 
-      toast.success(m['common.settings.saved']());
+      toast.success('Settings saved');
     } catch (error) {
       console.error(error);
-      toast.error(m['common.settings.failedToSave']());
+      toast.error('Failed to save settings');
       queryClient.setQueryData(trpc.settings.get.queryKey(), (updater) => {
         if (!updater) return;
         return saved ? { settings: { ...updater.settings, ...saved } } : updater;
@@ -181,11 +181,11 @@ export default function GeneralPage() {
   return (
     <div className="grid gap-6">
       <SettingsCard
-        title={m['pages.settings.general.title']()}
-        description={m['pages.settings.general.description']()}
+        title="General Settings"
+        description="Manage your general preferences and settings"
         footer={
           <Button type="submit" form="general-form" disabled={isSaving}>
-            {isSaving ? m['common.actions.saving']() : m['common.actions.saveChanges']()}
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         }
       >
@@ -197,12 +197,12 @@ export default function GeneralPage() {
                 name="language"
                 render={({ field }) => (
                   <FormItem className="w-full md:w-[200px]">
-                    <FormLabel className="text-sm font-medium">{m['pages.settings.general.language']()}</FormLabel>
+                    <FormLabel className="text-sm font-medium">Language</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger className="flex w-full flex-row justify-start hover:bg-transparent">
                           <Globe className="mr-2 h-4 w-4" />
-                          <SelectValue placeholder={m['pages.settings.general.selectLanguage']()} />
+                          <SelectValue placeholder="Select language" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -221,7 +221,7 @@ export default function GeneralPage() {
                 name="timezone"
                 render={({ field }) => (
                   <FormItem className="w-full md:w-[200px]">
-                    <FormLabel className="text-sm font-medium">{m['pages.settings.general.timezone']()}</FormLabel>
+                    <FormLabel className="text-sm font-medium">Timezone</FormLabel>
                     <TimezoneSelect field={field} />
                   </FormItem>
                 )}
@@ -233,13 +233,13 @@ export default function GeneralPage() {
                   render={({ field }) => (
                     <FormItem className="w-full md:w-[280px]">
                       <FormLabel className="!mb-1 flex flex-row items-center gap-1 text-sm font-medium">
-                        {m['pages.settings.general.defaultEmailAlias']()}{' '}
+                        Default Email Alias{' '}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <InfoIcon className="h-[1em] w-[1em]" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            {m['pages.settings.general.defaultEmailDescription']()}
+                            The default email address to use when composing new emails
                           </TooltipContent>
                         </Tooltip>
                       </FormLabel>
@@ -248,7 +248,7 @@ export default function GeneralPage() {
                           <SelectTrigger className="flex w-full flex-row justify-start hover:bg-transparent">
                             <Mail className="mr-2 h-4 w-4" />
                             <SelectValue
-                              placeholder={m['pages.settings.general.selectDefaultEmail']()}
+                              placeholder="Select default email"
                             />
                           </SelectTrigger>
                         </FormControl>
@@ -279,9 +279,9 @@ export default function GeneralPage() {
               render={({ field }) => (
                 <FormItem className="flex max-w-xl flex-row items-center justify-between rounded-lg border px-4 py-2">
                   <div className="space-y-0.5">
-                    <FormLabel>{m['pages.settings.general.zeroSignature']()}</FormLabel>
+                    <FormLabel>Zero Signature</FormLabel>
                     <FormDescription>
-                      {m['pages.settings.general.zeroSignatureDescription']()}
+                      Add "Sent with Zero" signature to outgoing emails
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -296,9 +296,9 @@ export default function GeneralPage() {
               render={({ field }) => (
                 <FormItem className="flex max-w-xl flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
-                    <FormLabel>{m['pages.settings.general.autoRead']()}</FormLabel>
+                    <FormLabel>Auto Read</FormLabel>
                     <FormDescription>
-                      {m['pages.settings.general.autoReadDescription']()}
+                      Automatically mark emails as read when opened
                     </FormDescription>
                   </div>
                   <FormControl>

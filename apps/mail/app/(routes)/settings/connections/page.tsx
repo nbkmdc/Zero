@@ -22,7 +22,6 @@ import { useBilling } from '@/hooks/use-billing';
 import { emailProviders } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { m } from '@/paraglide/messages';
 import { useQueryState } from 'nuqs';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -43,11 +42,11 @@ export default function ConnectionsPage() {
       {
         onError: (error) => {
           console.error('Error disconnecting account:', error);
-          toast.error(m['pages.settings.connections.disconnectError']());
+          toast.error('Failed to disconnect account');
         },
       },
     );
-    toast.success(m['pages.settings.connections.disconnectSuccess']());
+    toast.success('Account disconnected successfully');
     void refetchConnections();
     refetch();
     void refetchThreads();
@@ -56,8 +55,8 @@ export default function ConnectionsPage() {
   return (
     <div className="grid gap-6">
       <SettingsCard
-        title={m['pages.settings.connections.title']()}
-        description={m['pages.settings.connections.description']()}
+        title="Email Connections"
+        description="Manage your connected email accounts"
       >
         <div className="space-y-6">
           {isLoading ? (
@@ -141,7 +140,7 @@ export default function ConnectionsPage() {
                         <>
                           <div>
                             <Badge variant="destructive">
-                              {m['pages.settings.connections.disconnected']()}
+                              Disconnected
                             </Badge>
                           </div>
                           <Button
@@ -155,7 +154,7 @@ export default function ConnectionsPage() {
                             }}
                           >
                             <Unplug className="size-4" />
-                            {m['pages.settings.connections.reconnect']()}
+                            Reconnect
                           </Button>
                         </>
                       ) : null}
@@ -173,21 +172,21 @@ export default function ConnectionsPage() {
                         <DialogContent showOverlay>
                           <DialogHeader>
                             <DialogTitle>
-                              {m['pages.settings.connections.disconnectTitle']()}
+                              Disconnect Account
                             </DialogTitle>
                             <DialogDescription>
-                              {m['pages.settings.connections.disconnectDescription']()}
+                              Are you sure you want to disconnect this account? This action cannot be undone.
                             </DialogDescription>
                           </DialogHeader>
                           <div className="flex justify-end gap-4">
                             <DialogClose asChild>
                               <Button variant="outline">
-                                {m['pages.settings.connections.cancel']()}
+                                Cancel
                               </Button>
                             </DialogClose>
                             <DialogClose asChild>
                               <Button onClick={() => disconnectAccount(connection.id)}>
-                                {m['pages.settings.connections.remove']()}
+                                Remove
                               </Button>
                             </DialogClose>
                           </div>
@@ -209,7 +208,7 @@ export default function ConnectionsPage() {
                 >
                   <Plus className="absolute left-2 h-4 w-4" />
                   <span className="whitespace-nowrap pl-7 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    {m['pages.settings.connections.addEmail']()}
+                    Add Email
                   </span>
                 </Button>
               </AddConnectionDialog>
@@ -221,7 +220,7 @@ export default function ConnectionsPage() {
               >
                 <Plus className="absolute left-2 h-4 w-4" />
                 <span className="whitespace-nowrap pl-7 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                  {m['pages.settings.connections.addEmail']()}
+                  Add Email
                 </span>
               </Button>
             )}

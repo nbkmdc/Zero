@@ -3,7 +3,6 @@ import ConnectionsPage from '../connections/page';
 import AppearancePage from '../appearance/page';
 import ShortcutsPage from '../shortcuts/page';
 import SecurityPage from '../security/page';
-import { m } from '@/paraglide/messages';
 import GeneralPage from '../general/page';
 import { useParams } from 'react-router';
 import LabelsPage from '../labels/page';
@@ -26,7 +25,7 @@ export default function SettingsPage() {
   const SettingsComponent = settingsPages[section];
 
   if (!SettingsComponent) {
-    return <div>{m['pages.error.settingsNotFound']()}</div>;
+    return <div>Settings section not found</div>;
   }
 
   return <SettingsComponent />;

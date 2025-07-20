@@ -4,7 +4,6 @@ import { Settings, Image, FileImage, Zap } from 'lucide-react';
 import type { ImageQuality } from '@/lib/image-compression';
 
 import { Label } from '@/components/ui/label';
-import { m } from '@/paraglide/messages';
 
 interface ImageCompressionSettingsProps {
   quality: ImageQuality;
@@ -41,11 +40,11 @@ export function ImageCompressionSettings({
         <div className="flex items-center gap-2">
           <Settings className="h-4 w-4" />
           <CardTitle className="text-sm font-medium">
-            {m['pages.createEmail.imageCompression.title']()}
+            Image Compression
           </CardTitle>
         </div>
         <CardDescription className="text-xs">
-          {m['pages.createEmail.imageCompression.description']()}
+          Choose image quality for attachments
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
@@ -63,10 +62,10 @@ export function ImageCompressionSettings({
                     <Icon className={`h-4 w-4 ${option.color}`} />
                     <div className="flex flex-col">
                       <Label htmlFor={option.value} className="cursor-pointer text-sm font-medium">
-                        {m[`pages.createEmail.imageCompression.${option.value}.label`]()}
+                        {option.value === 'low' ? 'Low Quality' : option.value === 'medium' ? 'Medium Quality' : 'Original Quality'}
                       </Label>
                       <span className="text-muted-foreground text-xs">
-                        {m[`pages.createEmail.imageCompression.${option.value}.description`]()}
+                        {option.value === 'low' ? 'Smaller file size, faster upload' : option.value === 'medium' ? 'Balanced quality and size' : 'Best quality, larger file size'}
                       </span>
                     </div>
                   </div>

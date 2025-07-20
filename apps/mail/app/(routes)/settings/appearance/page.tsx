@@ -78,8 +78,8 @@ export default function AppearancePage() {
           colorTheme: values.colorTheme as Theme,
         }),
         {
-          success: m['common.settings.saved'](),
-          error: m['common.settings.failedToSave'](),
+          success: 'Settings saved',
+          error: 'Failed to save settings',
           finally: async () => {
             await refetch();
             setIsSaving(false);
@@ -94,11 +94,11 @@ export default function AppearancePage() {
   return (
     <div className="grid gap-6">
       <SettingsCard
-        title={m['pages.settings.appearance.title']()}
-        description={m['pages.settings.appearance.description']()}
+        title="Appearance"
+        description="Customize the appearance of your application"
         footer={
           <Button type="submit" form="appearance-form" disabled={isSaving}>
-            {isSaving ? m['common.actions.saving']() : m['common.actions.saveChanges']()}
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         }
       >
@@ -112,7 +112,7 @@ export default function AppearancePage() {
                     name="colorTheme"
                     render={() => (
                       <FormItem>
-                        <FormLabel>{m['pages.settings.appearance.theme']()}</FormLabel>
+                        <FormLabel>Theme</FormLabel>
                         <FormControl>
                           <Select
                             onValueChange={(value) => {
@@ -126,7 +126,7 @@ export default function AppearancePage() {
                                   {theme === 'dark' && <Moon className="h-4 w-4" />}
                                   {theme === 'light' && <Sun className="h-4 w-4" />}
                                   {theme === 'system' && <Laptop className="h-4 w-4" />}
-                                  {m[`common.themes.${theme as 'dark' | 'light' | 'system'}`]()}
+                                  {theme}
                                 </div>
                               </SelectValue>
                             </SelectTrigger>
@@ -134,19 +134,19 @@ export default function AppearancePage() {
                               <SelectItem value="dark">
                                 <div className="flex items-center gap-2">
                                   <Moon className="h-4 w-4" />
-                                  {m['common.themes.dark']()}
+                                  Dark
                                 </div>
                               </SelectItem>
                               <SelectItem value="system">
                                 <div className="flex items-center gap-2">
                                   <Laptop className="h-4 w-4" />
-                                  {m['common.themes.system']()}
+                                  System
                                 </div>
                               </SelectItem>
                               <SelectItem value="light">
                                 <div className="flex items-center gap-2">
                                   <Sun className="h-4 w-4" />
-                                  {m['common.themes.light']()}
+                                  Light
                                 </div>
                               </SelectItem>
                             </SelectContent>

@@ -18,7 +18,6 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '../ui/button';
 
 import type { Editor } from '@tiptap/core';
-import { m } from '@/paraglide/messages';
 
 export const Toolbar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) return null;
@@ -128,7 +127,7 @@ export const Toolbar = ({ editor }: { editor: Editor | null }) => {
                     <Bold className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{m['pages.createEmail.editor.menuBar.bold']()}</TooltipContent>
+                <TooltipContent>Bold</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -144,7 +143,7 @@ export const Toolbar = ({ editor }: { editor: Editor | null }) => {
                     <Italic className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{m['pages.createEmail.editor.menuBar.italic']()}</TooltipContent>
+                <TooltipContent>Italic</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -160,9 +159,7 @@ export const Toolbar = ({ editor }: { editor: Editor | null }) => {
                     <Strikethrough className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  {m['pages.createEmail.editor.menuBar.strikethrough']()}
-                </TooltipContent>
+                <TooltipContent>Strikethrough</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -177,7 +174,7 @@ export const Toolbar = ({ editor }: { editor: Editor | null }) => {
                     <Underline className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{m['pages.createEmail.editor.menuBar.underline']()}</TooltipContent>
+                <TooltipContent>Underline</TooltipContent>
               </Tooltip>
             </div>
 
@@ -197,9 +194,7 @@ export const Toolbar = ({ editor }: { editor: Editor | null }) => {
                     <List className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  {m['pages.createEmail.editor.menuBar.bulletList']()}
-                </TooltipContent>
+                <TooltipContent>Bullet List</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -214,9 +209,7 @@ export const Toolbar = ({ editor }: { editor: Editor | null }) => {
                     <ListOrdered className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  {m['pages.createEmail.editor.menuBar.orderedList']()}
-                </TooltipContent>
+                <TooltipContent>Ordered List</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

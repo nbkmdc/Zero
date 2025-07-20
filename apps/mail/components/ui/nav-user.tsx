@@ -30,7 +30,6 @@ import { useBilling } from '@/hooks/use-billing';
 import { SunIcon } from '../icons/animated/sun';
 import { clear as idbClear } from 'idb-keyval';
 import { useLocation } from 'react-router';
-import { m } from '@/paraglide/messages';
 import { useTheme } from 'next-themes';
 import { useQueryState } from 'nuqs';
 import { Button } from './button';
@@ -82,7 +81,7 @@ export function NavUser() {
     if (connectionId === activeConnection?.id) return;
 
     try {
-      setLoading(true, m['common.navUser.switchingAccounts']());
+      setLoading(true, 'Switching accounts...');
 
       setThreadId(null);
 
@@ -91,7 +90,7 @@ export function NavUser() {
       queryClient.clear();
     } catch (error) {
       console.error('Error switching accounts:', error);
-      toast.error(m['common.navUser.failedToSwitchAccount']());
+      toast.error('Failed to switch account');
 
       await refetchActiveConnection();
     } finally {
@@ -199,7 +198,7 @@ export function NavUser() {
                 <div className="space-y-1">
                   <>
                     <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">
-                      {m['common.navUser.accounts']()}
+                      Accounts
                     </p>
 
                     {data?.connections
@@ -248,14 +247,14 @@ export function NavUser() {
                         ) : (
                           <SunIcon className="size-4 opacity-60" />
                         )}
-                        <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
+                        <p className="text-[13px] opacity-60">App Theme</p>
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <a href={getSettingsHref()} className="cursor-pointer">
                         <div className="flex items-center gap-2">
                           <Settings size={16} className="opacity-60" />
-                          <p className="text-[13px] opacity-60">{m['common.actions.settings']()}</p>
+                          <p className="text-[13px] opacity-60">Settings</p>
                         </div>
                       </a>
                     </DropdownMenuItem>
@@ -269,7 +268,7 @@ export function NavUser() {
                         <div className="flex items-center gap-2">
                           <HelpCircle size={16} className="opacity-60" />
                           <p className="text-[13px] opacity-60">
-                            {m['common.navUser.customerSupport']()}
+                            Customer Support
                           </p>
                         </div>
                       </a>
@@ -277,7 +276,7 @@ export function NavUser() {
                     <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
                       <div className="flex items-center gap-2">
                         <LogOut size={16} className="opacity-60" />
-                        <p className="text-[13px] opacity-60">{m['common.actions.logout']()}</p>
+                        <p className="text-[13px] opacity-60">Logout</p>
                       </div>
                     </DropdownMenuItem>
                   </>
@@ -479,7 +478,7 @@ export function NavUser() {
                         ) : (
                           <SunIcon className="size-4 opacity-60" />
                         )}
-                        <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
+                        <p className="text-[13px] opacity-60">App Theme</p>
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
@@ -492,7 +491,7 @@ export function NavUser() {
                         <div className="flex items-center gap-2">
                           <HelpCircle size={16} className="opacity-60" />
                           <p className="text-[13px] opacity-60">
-                            {m['common.navUser.customerSupport']()}
+                            Customer Support
                           </p>
                         </div>
                       </a>
@@ -500,7 +499,7 @@ export function NavUser() {
                     <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
                       <div className="flex items-center gap-2">
                         <LogOut size={16} className="opacity-60" />
-                        <p className="text-[13px] opacity-60">{m['common.actions.logout']()}</p>
+                        <p className="text-[13px] opacity-60">Logout</p>
                       </div>
                     </DropdownMenuItem>
                   </div>

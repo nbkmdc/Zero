@@ -49,7 +49,6 @@ import { useThread } from '@/hooks/use-threads';
 import { BimiAvatar } from '../ui/bimi-avatar';
 import { RenderLabels } from './render-labels';
 import { MailContent } from './mail-content';
-import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
 import { FileText } from 'lucide-react';
 import { useQueryState } from 'nuqs';
@@ -186,42 +185,42 @@ const MailDisplayLabels = ({ labels }: { labels: string[] }) => {
           case 'important':
             icon = <Lightning className="h-3.5 w-3.5 fill-white" />;
             bgColor = 'bg-[#F59E0D]';
-            labelText = m['common.mailCategories.important']();
+            labelText = 'Important';
             break;
           case 'promotions':
             icon = <Tag className="h-3.5 w-3.5 fill-white" />;
             bgColor = 'bg-[#F43F5E]';
-            labelText = m['common.mailCategories.promotions']();
+            labelText = 'Promotions';
             break;
           case 'personal':
             icon = <User className="h-3.5 w-3.5 fill-white" />;
             bgColor = 'bg-[#39AE4A]';
-            labelText = m['common.mailCategories.personal']();
+            labelText = 'Personal';
             break;
           case 'updates':
             icon = <Bell className="h-3.5 w-3.5 fill-white" />;
             bgColor = 'bg-[#8B5CF6]';
-            labelText = m['common.mailCategories.updates']();
+            labelText = 'Updates';
             break;
           case 'work':
             icon = <Briefcase className="h-3.5 w-3.5 text-white" />;
             bgColor = '';
-            labelText = m['common.mailCategories.work']();
+            labelText = 'Work';
             break;
           case 'forums':
             icon = <Users className="h-3.5 w-3.5 text-white" />;
             bgColor = 'bg-blue-600';
-            labelText = m['common.mailCategories.forums']();
+            labelText = 'Forums';
             break;
           case 'notes':
             icon = <StickyNote className="h-3.5 w-3.5 text-white" />;
             bgColor = 'bg-amber-500';
-            labelText = m['common.mailCategories.notes']();
+            labelText = 'Notes';
             break;
           case 'starred':
             icon = <Star className="h-3.5 w-3.5 fill-white text-white" />;
             bgColor = 'bg-yellow-500';
-            labelText = m['common.mailCategories.starred']();
+            labelText = 'Starred';
             break;
           default:
             return null;
@@ -1366,7 +1365,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 ref={triggerRef}
                               >
                                 <p className="text-muted-foreground text-xs underline dark:text-[#8C8C8C]">
-                                  {m['common.mailDisplay.details']()}
+                                  Details
                                 </p>
                               </button>
                             </PopoverTrigger>
@@ -1382,7 +1381,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                               <div className="space-y-1 text-sm">
                                 <div className="flex">
                                   <span className="w-24 text-end text-gray-500">
-                                    {m['common.mailDisplay.from']()}:
+                                    From:
                                   </span>
                                   <div className="ml-3">
                                     <span className="text-muted-foreground text-nowrap pr-1 font-bold">
@@ -1397,7 +1396,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 </div>
                                 <div className="flex">
                                   <span className="w-24 text-nowrap text-end text-gray-500">
-                                    {m['common.mailDisplay.to']()}:
+                                    To:
                                   </span>
                                   <span className="text-muted-foreground ml-3 text-nowrap">
                                     {emailData?.to
@@ -1408,7 +1407,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 {emailData?.replyTo && emailData.replyTo.length > 0 && (
                                   <div className="flex">
                                     <span className="w-24 text-nowrap text-end text-gray-500">
-                                      {m['common.mailDisplay.replyTo']()}:
+                                      Reply To:
                                     </span>
                                     <span className="text-muted-foreground ml-3 text-nowrap">
                                       {cleanEmailDisplay(emailData?.replyTo)}
@@ -1418,7 +1417,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 {emailData?.cc && emailData.cc.length > 0 && (
                                   <div className="flex">
                                     <span className="shrink-0text-nowrap w-24 text-end text-gray-500">
-                                      {m['common.mailDisplay.cc']()}:
+                                      CC:
                                     </span>
                                     <span className="text-muted-foreground ml-3 text-nowrap">
                                       {emailData?.cc
@@ -1430,7 +1429,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 {emailData?.bcc && emailData.bcc.length > 0 && (
                                   <div className="flex">
                                     <span className="w-24 text-end text-gray-500">
-                                      {m['common.mailDisplay.bcc']()}:
+                                      BCC:
                                     </span>
                                     <span className="text-muted-foreground ml-3 text-nowrap">
                                       {emailData?.bcc
@@ -1441,7 +1440,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 )}
                                 <div className="flex">
                                   <span className="w-24 text-end text-gray-500">
-                                    {m['common.mailDisplay.date']()}:
+                                    Date:
                                   </span>
                                   <span className="text-muted-foreground ml-3 text-nowrap">
                                     {emailData?.receivedOn &&
@@ -1452,7 +1451,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 </div>
                                 <div className="flex">
                                   <span className="w-24 text-end text-gray-500">
-                                    {m['common.mailDisplay.mailedBy']()}:
+                                    Mailed By:
                                   </span>
                                   <span className="text-muted-foreground ml-3 text-nowrap">
                                     {cleanEmailDisplay(emailData?.sender?.email)}
@@ -1460,7 +1459,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 </div>
                                 <div className="flex">
                                   <span className="w-24 text-end text-gray-500">
-                                    {m['common.mailDisplay.signedBy']()}:
+                                    Signed By:
                                   </span>
                                   <span className="text-muted-foreground ml-3 text-nowrap">
                                     {cleanEmailDisplay(emailData?.sender?.email)}
@@ -1469,11 +1468,11 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 {emailData.tls && (
                                   <div className="flex items-center">
                                     <span className="w-24 text-end text-gray-500">
-                                      {m['common.mailDisplay.security']()}:
+                                      Security:
                                     </span>
                                     <div className="text-muted-foreground ml-3 flex items-center gap-1">
                                       <Lock className="h-4 w-4 text-green-600" />{' '}
-                                      {m['common.mailDisplay.standardEncryption']()}
+                                      Standard Encryption
                                     </div>
                                   </div>
                                 )}
@@ -1516,7 +1515,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                 }}
                               >
                                 <Printer className="fill-iconLight dark:fill-iconDark mr-2 h-4 w-4" />
-                                {m['common.mailDisplay.print']()}
+                                Print
                               </DropdownMenuItem>
                               {(messageAttachments?.length ?? 0) > 0 && (
                                 <DropdownMenuItem
@@ -1546,7 +1545,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                       <div className="flex justify-between">
                         <div className="flex gap-1">
                           <p className="text-muted-foreground text-sm font-medium dark:text-[#8C8C8C]">
-                            {m['common.mailDisplay.to']()}:{' '}
+                            To:{' '}
                             {(() => {
                               // Combine to and cc recipients
                               const allRecipients = [
@@ -1710,7 +1709,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                       setActiveReplyId(emailData.id);
                     }}
                     icon={<Reply className="fill-muted-foreground dark:fill-[#9B9B9B]" />}
-                    text={m['common.mail.reply']()}
+                    text="Reply"
                     shortcut={isLastEmail ? 'r' : undefined}
                   />
                   <ActionButton
@@ -1721,7 +1720,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                       setActiveReplyId(emailData.id);
                     }}
                     icon={<ReplyAll className="fill-muted-foreground dark:fill-[#9B9B9B]" />}
-                    text={m['common.mail.replyAll']()}
+                    text="Reply All"
                     shortcut={isLastEmail ? 'a' : undefined}
                   />
                   <ActionButton
@@ -1732,7 +1731,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                       setActiveReplyId(emailData.id);
                     }}
                     icon={<Forward className="fill-muted-foreground dark:fill-[#9B9B9B]" />}
-                    text={m['common.mail.forward']()}
+                    text="Forward"
                     shortcut={isLastEmail ? 'f' : undefined}
                   />
                 </div>

@@ -3,7 +3,6 @@ import { formatDisplayKeys } from '@/lib/hotkeys/use-hotkey-utils';
 import { useShortcutCache } from '@/lib/hotkeys/use-hotkey-utils';
 import { useCategorySettings } from '@/hooks/use-categories';
 import { type Shortcut } from '@/config/shortcuts';
-import { m } from '@/paraglide/messages';
 import { type ReactNode } from 'react';
 
 export default function ShortcutsPage() {
@@ -17,8 +16,8 @@ export default function ShortcutsPage() {
   return (
     <div className="grid gap-6">
       <SettingsCard
-        title={m['pages.settings.shortcuts.title']()}
-        description={m['pages.settings.shortcuts.description']()}
+        title="Keyboard Shortcuts"
+        description="Customize your keyboard shortcuts for faster navigation"
         // footer={
         //   <div className="flex gap-4">
         //     <Button
@@ -69,9 +68,9 @@ export default function ShortcutsPage() {
                     const cat = categorySettings[idx];
                     label = cat
                       ? `Show ${cat.name}`
-                      : m[`pages.settings.shortcuts.actions.${shortcut.action}`]();
+                      : shortcut.action.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
                   } else {
-                    label = m[`pages.settings.shortcuts.actions.${shortcut.action}`]();
+                    label = shortcut.action.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
                   }
 
                   return (

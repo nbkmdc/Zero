@@ -45,13 +45,13 @@ export default function SecurityPage() {
   return (
     <div className="grid gap-6">
       <SettingsCard
-        title={m['pages.settings.security.title']()}
-        description={m['pages.settings.security.description']()}
+        title="Security"
+        description="Manage your account security settings"
         footer={
           <div className="flex gap-4">
-            <Button variant="destructive">{m['pages.settings.security.deleteAccount']()}</Button>
+            <Button variant="destructive">Delete Account</Button>
             <Button type="submit" form="security-form" disabled={isSaving}>
-              {isSaving ? m['common.actions.saving']() : m['common.actions.saveChanges']()}
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         }
@@ -66,10 +66,10 @@ export default function SecurityPage() {
                   <FormItem className="bg-popover flex w-full flex-row items-center justify-between rounded-lg border p-4 md:w-auto">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                      {m['pages.settings.security.twoFactorAuth']()}
+                      Two-Factor Authentication
                       </FormLabel>
                       <FormDescription>
-                      {m['pages.settings.security.twoFactorAuthDescription']()}
+                      Add an extra layer of security to your account
                       </FormDescription>
                     </div>
                     <FormControl className="ml-4">
@@ -85,10 +85,10 @@ export default function SecurityPage() {
                   <FormItem className="bg-popover flex w-full flex-row items-center justify-between rounded-lg border p-4 md:w-auto">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                      {m['pages.settings.security.loginNotifications']()}
+                      Login Notifications
                       </FormLabel>
                       <FormDescription>
-                      {m['pages.settings.security.loginNotificationsDescription']()}
+                      Get notified when someone logs into your account
                       </FormDescription>
                     </div>
                     <FormControl className="ml-4">

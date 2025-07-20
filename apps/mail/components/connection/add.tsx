@@ -11,7 +11,6 @@ import { emailProviders } from '@/lib/constants';
 import { authClient } from '@/lib/auth-client';
 import { Plus, UserPlus } from 'lucide-react';
 import { useLocation } from 'react-router';
-import { m } from '@/paraglide/messages';
 import { motion } from 'motion/react';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
@@ -60,15 +59,15 @@ export const AddConnectionDialog = ({
             className={cn('w-full justify-start gap-2', className)}
           >
             <UserPlus size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
-            <p className="text-[13px] opacity-60">{m['pages.settings.connections.addEmail']()}</p>
+            <p className="text-[13px] opacity-60">Add Email</p>
           </Button>
         )}
       </DialogTrigger>
       <DialogContent showOverlay={true}>
         <DialogHeader>
-          <DialogTitle>{m['pages.settings.connections.connectEmail']()}</DialogTitle>
+          <DialogTitle>Connect Email</DialogTitle>
           <DialogDescription>
-            {m['pages.settings.connections.connectEmailDescription']()}
+            Connect your email account to get started
           </DialogDescription>
         </DialogHeader>
         {!canCreateConnection && (
@@ -134,7 +133,7 @@ export const AddConnectionDialog = ({
               className="h-24 w-full flex-col items-center justify-center gap-2 border-dashed"
             >
               <Plus className="h-12 w-12" />
-              <span className="text-xs">{m['pages.settings.connections.moreComingSoon']()}</span>
+              <span className="text-xs">More coming soon</span>
             </Button>
           </motion.div>
         </motion.div>

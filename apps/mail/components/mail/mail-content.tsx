@@ -5,7 +5,6 @@ import { fixNonReadableColors } from '@/lib/email-utils';
 import { useTRPC } from '@/providers/query-provider';
 import { getBrowserTimezone } from '@/lib/timezones';
 import { useSettings } from '@/hooks/use-settings';
-import { m } from '@/paraglide/messages';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -177,14 +176,14 @@ export function MailContent({ id, html, senderEmail }: MailContentProps) {
     <>
       {cspViolation && !isTrustedSender && !data?.settings?.externalImages && (
         <div className="flex items-center justify-start bg-amber-600/20 px-2 py-1 text-sm text-amber-600">
-          <p>{m['common.actions.hiddenImagesWarning']()}</p>
+          <p>Images are hidden for security</p>
           <button
             onClick={() => setTemporaryImagesEnabled(!temporaryImagesEnabled)}
             className="ml-2 cursor-pointer underline"
           >
             {temporaryImagesEnabled
-              ? m['common.actions.disableImages']()
-              : m['common.actions.showImages']()}
+              ? 'Hide images'
+              : 'Show images'}
           </button>
           <button
             onClick={async () => {
@@ -196,7 +195,7 @@ export function MailContent({ id, html, senderEmail }: MailContentProps) {
             }}
             className="ml-2 cursor-pointer underline"
           >
-            {m['common.actions.trustSender']()}
+            Trust sender
           </button>
         </div>
       )}

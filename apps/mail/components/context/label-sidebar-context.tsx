@@ -17,7 +17,6 @@ import { useTRPC } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { useLabels } from '@/hooks/use-labels';
-import { m } from '@/paraglide/messages';
 import { Trash } from '../icons/icons';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
@@ -37,7 +36,7 @@ export function LabelSidebarContextMenu({ children, labelId, hide }: LabelSideba
 
   const handleDelete = () => {
     toast.promise(deleteLabel({ id: labelId }), {
-      success: m['common.labels.deleteLabelSuccess'](),
+      success: 'Label deleted successfully',
       error: 'Error deleting label',
       finally: () => {
         refetch();
@@ -65,7 +64,7 @@ export function LabelSidebarContextMenu({ children, labelId, hide }: LabelSideba
               className="hover:bg-[#FDE4E9] dark:hover:bg-[#411D23] [&_svg]:size-3.5"
             >
               <Trash className="fill-[#F43F5E]" />
-              <span>{m['common.labels.deleteLabel']()}</span>
+              <span>Delete Label</span>
             </Button>
           </ContextMenuItem>
         </ContextMenuContent>
@@ -74,18 +73,18 @@ export function LabelSidebarContextMenu({ children, labelId, hide }: LabelSideba
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent showOverlay={true}>
           <DialogHeader>
-            <DialogTitle>{m['common.labels.deleteLabelConfirm']()}</DialogTitle>
+            <DialogTitle>Delete Label</DialogTitle>
             <DialogDescription>
-              {m['common.labels.deleteLabelConfirmDescription']()}
+              Are you sure you want to delete this label? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-2">
             <DialogClose asChild>
-              <Button variant="outline">{m['common.labels.deleteLabelConfirmCancel']()}</Button>
+              <Button variant="outline">Cancel</Button>
             </DialogClose>
             <DialogClose asChild>
               <Button onClick={handleDelete}>
-                {m['common.labels.deleteLabelConfirmDelete']()}
+                Delete
               </Button>
             </DialogClose>
           </DialogFooter>

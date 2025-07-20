@@ -21,7 +21,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { m } from '@/paraglide/messages';
 import { Command } from 'lucide-react';
 
 interface LabelDialogProps {
@@ -95,7 +94,7 @@ export function LabelDialog({
       <DialogContent showOverlay={true}>
         <DialogHeader>
           <DialogTitle>
-            {editingLabel ? m['common.labels.editLabel']() : m['common.mail.createNewLabel']()}
+            {editingLabel ? 'Edit Label' : 'Create New Label'}
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
@@ -115,7 +114,7 @@ export function LabelDialog({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{m['common.labels.labelName']()}</FormLabel>
+                    <FormLabel>Label Name</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter label name" {...field} autoFocus />
                     </FormControl>
@@ -124,7 +123,7 @@ export function LabelDialog({
                 )}
               />
               <div className="space-y-2">
-                <Label>{m['common.labels.color']()}</Label>
+                <Label>Color</Label>
                 <div className="w-full">
                   <div className="flex flex-wrap gap-2">
                     {LABEL_COLORS.map((color) => (
@@ -152,12 +151,12 @@ export function LabelDialog({
             </div>
             <div className="flex justify-end gap-2">
               <Button className="h-8" type="button" variant="outline" onClick={handleClose}>
-                {m['common.actions.cancel']()}
+                Cancel
               </Button>
               <Button className="h-8 [&_svg]:size-4" type="submit">
                 {editingLabel
-                  ? m['common.actions.saveChanges']()
-                  : m['common.labels.createLabel']()}
+                  ? 'Save Changes'
+                  : 'Create Label'}
                 <div className="flex h-5 items-center justify-center gap-1 rounded-sm bg-white/10 px-1 dark:bg-black/10">
                   <Command className="h-3 w-3 text-white dark:text-[#929292]" />
                   <CurvedArrow className="mt-1.5 h-3.5 w-3.5 fill-white dark:fill-[#929292]" />

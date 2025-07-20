@@ -2,7 +2,6 @@ import { useActiveConnection } from './use-connections';
 import { useTRPC } from '@/providers/query-provider';
 import { useQuery } from '@tanstack/react-query';
 
-import { m } from '@/paraglide/messages';
 import type { Note } from '@/types';
 
 export const useThreadNotes = (threadId: string) => {
@@ -21,7 +20,7 @@ export const useThreadNotes = (threadId: string) => {
         refetchOnReconnect: false,
         initialData: { notes: [] as Note[] },
         meta: {
-          customError: m['common.notes.errors.failedToLoadNotes'](),
+          customError: 'Failed to load notes',
         },
       },
     ),
