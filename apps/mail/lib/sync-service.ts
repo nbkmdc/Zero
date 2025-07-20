@@ -1,0 +1,75 @@
+import { usePartySocket } from 'partysocket/react';
+import { useAtom, useSetAtom } from 'jotai';
+import { syncConnectionAtom, threadsAtom, threadAtom, threadListAtom } from '@/store/sync';
+import { IncomingMessageType, OutgoingMessageType } from '@/types/sync';
+
+export enum SyncMessageType {
+  SYNC_THREADS = 'sync_threads',
+  SYNC_THREAD = 'sync_thread',
+  SYNC_ACTION = 'sync_action',
+}
+
+export type SyncMessage = {
+  type: SyncMessageType | IncomingMessageType | string;
+  data: any;
+  requestId?: string;
+};
+
+export function useSyncService(connectionId: string | null) {
+  const [syncConnection, setSyncConnection] = useAtom(syncConnectionAtom);
+  const setThreads = useSetAtom(threadsAtom);
+  const setThread = useSetAtom(threadAtom);
+  const setThreadList = useSetAtom(threadListAtom);
+
+  const socket = usePartySocket({
+    party: 'zero-agent',
+    room: connectionId ? String(connectionId) : 'general',
+    prefix: 'agents',
+    host: (import.meta as any).env.VITE_PUBLIC_BACKEND_URL!,
+    onOpen: () => {
+      setSyncConnection(prev => ({ ...prev, isConnected: true, connectionId }));
+    },
+    onClose: () => {
+      setSyncConnection(prev => ({ ...prev, isConnected: false }));
+    },
+    onMessage: (message: MessageEvent<string>) => {
+      try {
+        const { type, data } = JSON.parse(message.data);
+        
+        switch (type) {
+          case OutgoingMessageType.Mail_List:
+            setThreadList(prev => ({
+              ...prev,
+              [data.folder]: {
+                threads: data.threads,
+                nextPageToken: data.nextPageToken,
+                isLoading: false,
+                lastUpdated: new Date(),
+              }
+            }));
+            break;
+            
+          case OutgoingMessageType.Mail_Get:
+            setThread(prev => ({
+              ...prev,
+              [data.threadId]: data.thread
+            }));
+            break;
+        }
+      } catch (error) {
+        console.error('Sync service message error:', error);
+      }
+    },
+  });
+
+  const sendSyncMessage = (message: SyncMessage) => {
+    if (socket && syncConnection.isConnected) {
+      socket.send(JSON.stringify(message));
+    }
+  };
+
+  return {
+    isConnected: syncConnection.isConnected,
+    sendSyncMessage,
+  };
+}

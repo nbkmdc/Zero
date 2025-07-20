@@ -8,6 +8,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import type { PropsWithChildren } from 'react';
 import Toaster from '@/components/ui/toast';
 import { ThemeProvider } from 'next-themes';
+import { SyncProvider } from './sync-provider';
 
 export function ClientProviders({ children }: PropsWithChildren) {
   const { data } = useSettings();
@@ -27,8 +28,10 @@ export function ClientProviders({ children }: PropsWithChildren) {
           <SidebarProvider>
             <PostHogProvider>
               <LoadingProvider>
-                {children}
-                <Toaster />
+                <SyncProvider>
+                  {children}
+                  <Toaster />
+                </SyncProvider>
               </LoadingProvider>
             </PostHogProvider>
           </SidebarProvider>

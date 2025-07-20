@@ -1035,34 +1035,82 @@ export class ZeroAgent extends AIChatAgent<typeof env> {
           this.cancelChatRequest(data.id);
           break;
         }
-        // case IncomingMessageType.Mail_List: {
-        //   const result = await this.getThreadsFromDB({
-        //     labelIds: data.labelIds,
-        //     folder: data.folder,
-        //     q: data.query,
-        //     max: data.maxResults,
-        //     cursor: data.pageToken,
-        //   });
-        //   this.currentFolder = data.folder;
-        //   connection.send(
-        //     JSON.stringify({
-        //       type: OutgoingMessageType.Mail_List,
-        //       result,
-        //     }),
-        //   );
-        //   break;
-        // }
-        // case IncomingMessageType.Mail_Get: {
-        //   const result = await this.getThreadFromDB(data.threadId);
-        //   connection.send(
-        //     JSON.stringify({
-        //       type: OutgoingMessageType.Mail_Get,
-        //       result,
-        //       threadId: data.threadId,
-        //     }),
-        //   );
-        //   break;
-        // }
+        case IncomingMessageType.Mail_List: {
+          try {
+            const driver = new ZeroDriver(this.ctx, this.env);
+            await driver.setupAuth();
+            const result = await driver.getThreadsFromDB({
+              labelIds: data.labelIds,
+              folder: data.folder,
+              q: data.query,
+              maxResults: data.maxResults,
+              pageToken: data.pageToken,
+            });
+            connection.send(
+              JSON.stringify({
+                type: OutgoingMessageType.Mail_List,
+                folder: data.folder,
+                threads: result.threads,
+                nextPageToken: result.nextPageToken,
+              }),
+            );
+          } catch (error) {
+            console.error('Mail_List error:', error);
+          }
+          break;
+        }
+        case IncomingMessageType.Mail_Get: {
+          try {
+            const driver = new ZeroDriver(this.ctx, this.env);
+            await driver.setupAuth();
+            const result = await driver.getThreadFromDB(data.threadId);
+            connection.send(
+              JSON.stringify({
+                type: OutgoingMessageType.Mail_Get,
+                threadId: data.threadId,
+                thread: result,
+              }),
+            );
+          } catch (error) {
+            console.error('Mail_Get error:', error);
+          }
+          break;
+        }
+        case 'sync_action': {
+          try {
+            const { action, threadIds, params } = data;
+            const driver = new ZeroDriver(this.ctx, this.env);
+            await driver.setupAuth();
+            
+            let result;
+            switch (action) {
+              case 'mark_read':
+                result = await driver.markAsRead(threadIds);
+                break;
+              case 'mark_unread':
+                result = await driver.markAsUnread(threadIds);
+                break;
+              case 'toggle_star':
+                result = await driver.modifyLabels(threadIds, ['STARRED'], []);
+                break;
+              case 'modify_labels':
+                result = await driver.modifyLabels(threadIds, params.addLabels || [], params.removeLabels || []);
+                break;
+              default:
+                console.warn('Unknown sync action:', action);
+            }
+            
+            this.broadcast(JSON.stringify({
+              type: OutgoingMessageType.Mail_List,
+              folder: 'inbox',
+              threads: [],
+              nextPageToken: null,
+            }));
+          } catch (error) {
+            console.error('sync_action error:', error);
+          }
+          break;
+        }
       }
     }
   }
