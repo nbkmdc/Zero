@@ -1,4 +1,4 @@
-import { activeConnectionProcedure, privateProcedure, router } from '../trpc';
+import { activeConnectionProcedure, router } from '../trpc';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -8,12 +8,12 @@ export const teamRouter = router({
     .query(async ({ input, ctx }) => {
       try {
         const { organizationId } = input;
-        console.log('listTeams input', { organizationId });
         const teams = await ctx.c.var.auth.api.listOrganizationTeams({
           headers: ctx.c.req.raw.headers,
-          body: {}, // omit organizationId to test default behavior
+          query: {
+            organizationId,
+          },
         });
-        console.log('teams raw response', teams, typeof teams, Array.isArray(teams));
         return { teams: Array.isArray(teams) ? teams : [] } as const;
       } catch (error) {
         console.error(error);
@@ -28,16 +28,15 @@ export const teamRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const { organizationId, name } = input;
-        console.log('createTeam input', { organizationId, name });
         const team = await ctx.c.var.auth.api.createTeam({
-          body: {
+          query: {
             organizationId,
             name,
           },
         });
         return { success: true, id: team.id } as const;
       } catch (error) {
-        console.error('createTeam error', error, error?.body);
+        console.error('createTeam error', error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to create team',
@@ -51,7 +50,7 @@ export const teamRouter = router({
         const { teamId, name } = input;
         const team = await ctx.c.var.auth.api.updateTeam({
           teamId,
-          data: {
+          query: {
             name,
           },
         });
@@ -70,8 +69,11 @@ export const teamRouter = router({
       try {
         const { organizationId, teamId } = input;
         const team = await ctx.c.var.auth.api.removeTeam({
-          teamId,
-          organizationId,
+          query: {
+            teamId,
+            organizationId,
+          },
+          headers: ctx.c.req.raw.headers,
         });
         return { success: true, id: team.id } as const;
       } catch (error) {
@@ -89,7 +91,9 @@ export const teamRouter = router({
       try {
         const { teamId } = input;
         const team = await ctx.c.var.auth.api.getTeam({
-          teamId,
+          query: {
+            teamId,
+          },
           headers: ctx.c.req.raw.headers,
         });
         return { team };
@@ -107,10 +111,14 @@ export const teamRouter = router({
     .query(async ({ input, ctx }) => {
       try {
         const { teamId } = input;
+        console.log('listTeamMembers input', { teamId });
         const members = await ctx.c.var.auth.api.listTeamMembers({
-          teamId,
+          query: {
+            teamId,
+          },
           headers: ctx.c.req.raw.headers,
         });
+        console.log('listTeamMembers members', members);
         return { members };
       } catch (error) {
         console.error(error);
@@ -126,11 +134,15 @@ export const teamRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const { teamId, userId } = input;
+        console.log('addTeamMember input', { teamId, userId });
         await ctx.c.var.auth.api.addTeamMember({
-          teamId,
-          userId,
+          query: {
+            teamId,
+            userId,
+          },
           headers: ctx.c.req.raw.headers,
         });
+        console.log('addTeamMember success');
         return { success: true };
       } catch (error) {
         console.error(error);
@@ -147,8 +159,10 @@ export const teamRouter = router({
       try {
         const { teamId, userId } = input;
         await ctx.c.var.auth.api.removeTeamMember({
-          teamId,
-          userId,
+          query: {
+            teamId,
+            userId,
+          },
           headers: ctx.c.req.raw.headers,
         });
         return { success: true };
@@ -167,7 +181,9 @@ export const teamRouter = router({
       try {
         const { teamId } = input;
         await ctx.c.var.auth.api.setActiveTeam({
-          teamId,
+          query: {
+            teamId,
+          },
           headers: ctx.c.req.raw.headers,
         });
         return { success: true };
