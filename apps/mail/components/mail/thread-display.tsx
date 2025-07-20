@@ -23,9 +23,8 @@ import {
 import { EmptyStateIcon } from '../icons/empty-state-svg';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useOptimisticThreadState } from '@/components/mail/optimistic-thread-state';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
+import { useDirectActions } from '@/hooks/use-direct-actions';
 import { focusedIndexAtom } from '@/hooks/use-mail-navigation';
 
 import { type ThreadDestination } from '@/lib/thread-actions';
@@ -45,7 +44,6 @@ import { useParams } from 'react-router';
 import ReplyCompose from './reply-composer';
 import { NotesPanel } from './note-panel';
 import { cn, FOLDERS } from '@/lib/utils';
-import { m } from '@/paraglide/messages';
 import MailDisplay from './mail-display';
 
 import { Inbox } from 'lucide-react';
@@ -190,8 +188,6 @@ export function ThreadDisplay() {
   const { mutateAsync: toggleImportant } = useMutation(trpc.mail.toggleImportant.mutationOptions());
   const [, setIsComposeOpen] = useQueryState('isComposeOpen');
 
-  // Get optimistic state for this thread
-  const optimisticState = useOptimisticThreadState(id ?? '');
 
   const handlePrevious = useCallback(() => {
     if (!id || !items.length || focusedIndex === null) return;
@@ -261,7 +257,7 @@ export function ThreadDisplay() {
     setDraftId(null);
   }, [setThreadId, setMode, setActiveReplyId, setDraftId]);
 
-  const { optimisticMoveThreadsTo } = useOptimisticActions();
+  const { directMoveThreadsTo } = useDirectActions();
 
   const moveThreadTo = useCallback(
     async (destination: ThreadDestination) => {
@@ -271,21 +267,21 @@ export function ThreadDisplay() {
       setActiveReplyId(null);
       setDraftId(null);
 
-      optimisticMoveThreadsTo([id], folder, destination);
+      directMoveThreadsTo([id], folder, destination);
       handleNext();
     },
-    [id, folder, optimisticMoveThreadsTo, handleNext, setMode, setActiveReplyId, setDraftId],
+    [id, folder, directMoveThreadsTo, handleNext, setMode, setActiveReplyId, setDraftId],
   );
 
-  const { optimisticToggleStar } = useOptimisticActions();
+  const { directToggleStar } = useDirectActions();
 
   const handleToggleStar = useCallback(async () => {
     if (!emailData || !id) return;
 
     const newStarredState = !isStarred;
-    optimisticToggleStar([id], newStarredState);
+    directToggleStar([id], newStarredState);
     setIsStarred(newStarredState);
-  }, [emailData, id, isStarred, optimisticToggleStar]);
+  }, [emailData, id, isStarred, directToggleStar]);
 
   const printThread = () => {
     try {
@@ -676,7 +672,7 @@ export function ThreadDisplay() {
     await toggleImportant({ ids: [id] });
     await refetchThread();
     if (isImportant) {
-      toast.success(m['common.mail.markedAsImportant']());
+      toast.success('Marked as important');
     } else {
       toast.error('Failed to mark as important');
     }
@@ -692,10 +688,10 @@ export function ThreadDisplay() {
   }, [emailData?.latest?.tags]);
 
   useEffect(() => {
-    if (optimisticState.optimisticStarred !== null) {
-      setIsStarred(optimisticState.optimisticStarred);
+    if (emailData?.latest?.tags) {
+      setIsStarred(emailData.latest.tags.some((tag) => tag.name === 'STARRED'));
     }
-  }, [optimisticState.optimisticStarred]);
+  }, [emailData?.latest?.tags]);
 
   //   // Automatically open Reply All composer when email thread is loaded
   //   useEffect(() => {
@@ -803,13 +799,13 @@ export function ThreadDisplay() {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                      {m['common.actions.close']()}
+                      Close
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 <ThreadActionButton
                   icon={X}
-                  label={m['common.actions.close']()}
+                  label="Close"
                   onClick={handleClose}
                   className="hidden md:flex"
                 />
@@ -872,7 +868,7 @@ export function ThreadDisplay() {
                   <Reply className="fill-muted-foreground dark:fill-[#9B9B9B]" />
                   <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
                     <div className="justify-start whitespace-nowrap text-sm leading-none text-black dark:text-white">
-                      {m['common.threadDisplay.replyAll']()}
+                      Reply All
                     </div>
                   </div>
                 </button>
@@ -896,8 +892,8 @@ export function ThreadDisplay() {
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
                       {isStarred
-                        ? m['common.threadDisplay.unstar']()
-                        : m['common.threadDisplay.star']()}
+                        ? 'Unstar'
+                        : 'Star'}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -913,7 +909,7 @@ export function ThreadDisplay() {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                      {m['common.threadDisplay.archive']()}
+                      Archive
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -930,7 +926,7 @@ export function ThreadDisplay() {
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="bg-white dark:bg-[#313131]">
-                        {m['common.mail.moveToBin']()}
+                        Move to Bin
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -955,7 +951,7 @@ export function ThreadDisplay() {
                     {isInSpam || isInArchive || isInBin ? (
                       <DropdownMenuItem onClick={() => moveThreadTo('inbox')}>
                         <Inbox className="mr-2 h-4 w-4" />
-                        <span>{m['common.mail.moveToInbox']()}</span>
+                        <span>Move to Inbox</span>
                       </DropdownMenuItem>
                     ) : (
                       <>
@@ -966,17 +962,17 @@ export function ThreadDisplay() {
                           }}
                         >
                           <Printer className="fill-iconLight dark:fill-iconDark mr-2 h-4 w-4" />
-                          <span>{m['common.threadDisplay.printThread']()}</span>
+                          <span>Print Thread</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => moveThreadTo('spam')}>
                           <ArchiveX className="fill-iconLight dark:fill-iconDark mr-2" />
-                          <span>{m['common.threadDisplay.moveToSpam']()}</span>
+                          <span>Move to Spam</span>
                         </DropdownMenuItem>
                         {emailData.latest?.listUnsubscribe ||
                         emailData.latest?.listUnsubscribePost ? (
                           <DropdownMenuItem onClick={handleUnsubscribeProcess}>
                             <Folders className="fill-iconLight dark:fill-iconDark mr-2" />
-                            <span>{m['common.mailDisplay.unsubscribe']()}</span>
+                            <span>Unsubscribe</span>
                           </DropdownMenuItem>
                         ) : null}
                       </>
@@ -984,7 +980,7 @@ export function ThreadDisplay() {
                     {!isImportant && (
                       <DropdownMenuItem onClick={handleToggleImportant}>
                         <Lightning className="fill-iconLight dark:fill-iconDark mr-2" />
-                        {m['common.mail.markAsImportant']()}
+                        Mark as Important
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>

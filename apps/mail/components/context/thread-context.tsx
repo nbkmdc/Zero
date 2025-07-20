@@ -23,8 +23,7 @@ import {
   Tag,
   Trash,
 } from 'lucide-react';
-import { useOptimisticThreadState } from '@/components/mail/optimistic-thread-state';
-import { useOptimisticActions } from '@/hooks/use-optimistic-actions';
+import { useDirectActions } from '@/hooks/use-direct-actions';
 import { type ThreadDestination } from '@/lib/thread-actions';
 import { useThread, useThreads } from '@/hooks/use-threads';
 import { ExclamationCircle, Mail } from '../icons/icons';
@@ -33,7 +32,6 @@ import { useLabels } from '@/hooks/use-labels';
 import { FOLDERS, LABELS } from '@/lib/utils';
 import { useMail } from '../mail/use-mail';
 import { Checkbox } from '../ui/checkbox';
-import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
 import { useQueryState } from 'nuqs';
 import { toast } from 'sonner';
@@ -60,11 +58,10 @@ interface EmailContextMenuProps {
 
 const LabelsList = ({ threadId, bulkSelected }: { threadId: string; bulkSelected: string[] }) => {
   const { userLabels: labels } = useLabels();
-  const { optimisticToggleLabel } = useOptimisticActions();
+  const { directToggleLabel } = useDirectActions();
   const targetThreadIds = bulkSelected.length > 0 ? bulkSelected : [threadId];
 
   const { data: thread } = useThread(threadId);
-  const rightClickedThreadOptimisticState = useOptimisticThreadState(threadId);
 
   if (!labels || !thread) return null;
 
@@ -75,19 +72,10 @@ const LabelsList = ({ threadId, bulkSelected }: { threadId: string; bulkSelected
 
     let hasLabel = thread.labels?.map((label) => label.id).includes(labelId) || false;
 
-    if (rightClickedThreadOptimisticState.optimisticLabels) {
-      if (rightClickedThreadOptimisticState.optimisticLabels.addedLabelIds.includes(labelId)) {
-        hasLabel = true;
-      } else if (
-        rightClickedThreadOptimisticState.optimisticLabels.removedLabelIds.includes(labelId)
-      ) {
-        hasLabel = false;
-      }
-    }
 
     shouldAddLabel = !hasLabel;
 
-    optimisticToggleLabel(targetThreadIds, labelId, shouldAddLabel);
+    directToggleLabel(targetThreadIds, labelId, shouldAddLabel);
   };
 
   return (
@@ -96,17 +84,6 @@ const LabelsList = ({ threadId, bulkSelected }: { threadId: string; bulkSelected
         .filter((label) => label.id)
         .map((label) => {
           let isChecked = label.id ? thread.labels?.map((l) => l.id).includes(label.id) : false;
-
-          const checkboxOptimisticState = useOptimisticThreadState(threadId);
-          if (label.id && checkboxOptimisticState.optimisticLabels) {
-            if (checkboxOptimisticState.optimisticLabels.addedLabelIds.includes(label.id)) {
-              isChecked = true;
-            } else if (
-              checkboxOptimisticState.optimisticLabels.removedLabelIds.includes(label.id)
-            ) {
-              isChecked = false;
-            }
-          }
 
           return (
             <ContextMenuItem
@@ -143,39 +120,26 @@ export function ThreadContextMenu({
   const [, setThreadId] = useQueryState('threadId');
   const { data: threadData } = useThread(threadId);
   const [, setActiveReplyId] = useQueryState('activeReplyId');
-  const optimisticState = useOptimisticThreadState(threadId);
   const {
-    optimisticMoveThreadsTo,
-    optimisticToggleStar,
-    optimisticToggleImportant,
-    optimisticMarkAsRead,
-    optimisticMarkAsUnread,
-    optimisticDeleteThreads,
-  } = useOptimisticActions();
+    directMoveThreadsTo,
+    directToggleStar,
+    directToggleImportant,
+    directMarkAsRead,
+    directMarkAsUnread,
+    directDeleteThreads,
+  } = useDirectActions();
 
   const { isUnread, isStarred, isImportant } = useMemo(() => {
     const unread = threadData?.hasUnread ?? false;
-
-    let starred;
-    if (optimisticState.optimisticStarred !== null) {
-      starred = optimisticState.optimisticStarred;
-    } else {
-      starred = threadData?.messages.some((message) =>
-        message.tags?.some((tag) => tag.name.toLowerCase() === 'starred'),
-      );
-    }
-
-    let important;
-    if (optimisticState.optimisticImportant !== null) {
-      important = optimisticState.optimisticImportant;
-    } else {
-      important = threadData?.messages.some((message) =>
-        message.tags?.some((tag) => tag.name.toLowerCase() === 'important'),
-      );
-    }
+    const starred = threadData?.messages.some((message) =>
+      message.tags?.some((tag) => tag.name.toLowerCase() === 'starred'),
+    ) ?? false;
+    const important = threadData?.messages.some((message) =>
+      message.tags?.some((tag) => tag.name.toLowerCase() === 'important'),
+    ) ?? false;
 
     return { isUnread: unread, isStarred: starred, isImportant: important };
-  }, [threadData, optimisticState.optimisticStarred, optimisticState.optimisticImportant]);
+  }, [threadData]);
 
   const handleMove = (from: string, to: string) => () => {
     try {
@@ -192,14 +156,14 @@ export function ThreadContextMenu({
       else if (to === LABELS.TRASH) destination = FOLDERS.BIN;
       else if (from && !to) destination = FOLDERS.ARCHIVE;
 
-      optimisticMoveThreadsTo(targets, currentFolder, destination);
+      directMoveThreadsTo(targets, currentFolder, destination);
 
       if (mail.bulkSelected.length) {
         setMail({ ...mail, bulkSelected: [] });
       }
     } catch (error) {
       console.error(`Error moving ${threadId ? 'email' : 'thread'}:`, error);
-      toast.error(m['common.actions.failedToMove']());
+      toast.error('Failed to move');
     }
   };
 
@@ -208,7 +172,7 @@ export function ThreadContextMenu({
 
     const newStarredState = !isStarred;
 
-    optimisticToggleStar(targets, newStarredState);
+    directToggleStar(targets, newStarredState);
 
     if (mail.bulkSelected.length) {
       setMail((prev) => ({ ...prev, bulkSelected: [] }));
@@ -219,8 +183,7 @@ export function ThreadContextMenu({
     const targets = mail.bulkSelected.length ? mail.bulkSelected : [threadId];
     const newImportantState = !isImportant;
 
-    // Use optimistic update with undo functionality
-    optimisticToggleImportant(targets, newImportantState);
+    directToggleImportant(targets, newImportantState);
 
     // Clear bulk selection after action
     if (mail.bulkSelected.length) {
@@ -232,11 +195,10 @@ export function ThreadContextMenu({
     const targets = mail.bulkSelected.length ? mail.bulkSelected : [threadId];
     const newReadState = isUnread; // If currently unread, mark as read (true)
 
-    // Use optimistic update with undo functionality
     if (newReadState) {
-      optimisticMarkAsRead(targets);
+      directMarkAsRead(targets);
     } else if (!newReadState) {
-      optimisticMarkAsUnread(targets);
+      directMarkAsUnread(targets);
     } else {
       toast.error('Failed to mark as read');
     }
@@ -273,41 +235,40 @@ export function ThreadContextMenu({
     () => [
       {
         id: 'open-in-new-tab',
-        label: m['common.mail.openInNewTab'](),
+        label: 'Open in new tab',
         icon: <ExternalLink className="mr-2.5 h-4 w-4" />,
         action: handleOpenInNewTab,
         disabled: false,
       },
       {
         id: 'reply',
-        label: m['common.mail.reply'](),
+        label: 'Reply',
         icon: <Reply className="mr-2.5 h-4 w-4 opacity-60" />,
         action: handleThreadReply,
         disabled: false,
       },
       {
         id: 'reply-all',
-        label: m['common.mail.replyAll'](),
+        label: 'Reply all',
         icon: <ReplyAll className="mr-2.5 h-4 w-4 opacity-60" />,
         action: handleThreadReplyAll,
         disabled: false,
       },
       {
         id: 'forward',
-        label: m['common.mail.forward'](),
+        label: 'Forward',
         icon: <Forward className="mr-2.5 h-4 w-4 opacity-60" />,
         action: handleThreadForward,
         disabled: false,
       },
     ],
-    [m, handleThreadReply, handleThreadReplyAll, handleThreadForward],
+    [handleThreadReply, handleThreadReplyAll, handleThreadForward],
   );
 
   const handleDelete = () => () => {
     const targets = mail.bulkSelected.length ? mail.bulkSelected : [threadId];
 
-    // Use optimistic update with undo functionality
-    optimisticDeleteThreads(targets, currentFolder);
+    directDeleteThreads(targets, currentFolder);
 
     // Clear bulk selection after action
     if (mail.bulkSelected.length) {
@@ -325,14 +286,14 @@ export function ThreadContextMenu({
       return [
         {
           id: 'move-to-inbox',
-          label: m['common.mail.moveToInbox'](),
+          label: 'Move to inbox',
           icon: <Inbox className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleMove(LABELS.SPAM, LABELS.INBOX),
           disabled: false,
         },
         {
           id: 'move-to-bin',
-          label: m['common.mail.moveToBin'](),
+          label: 'Move to bin',
           icon: <Trash className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleMove(LABELS.SPAM, LABELS.TRASH),
           disabled: false,
@@ -344,14 +305,14 @@ export function ThreadContextMenu({
       return [
         {
           id: 'restore-from-bin',
-          label: m['common.mail.restoreFromBin'](),
+          label: 'Restore from bin',
           icon: <Inbox className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleMove(LABELS.TRASH, LABELS.INBOX),
           disabled: false,
         },
         {
           id: 'delete-from-bin',
-          label: m['common.mail.deleteFromBin'](),
+          label: 'Delete from bin',
           icon: <Trash className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleDelete(),
           disabled: true,
@@ -363,14 +324,14 @@ export function ThreadContextMenu({
       return [
         {
           id: 'move-to-inbox',
-          label: m['common.mail.unarchive'](),
+          label: 'Unarchive',
           icon: <Inbox className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleMove('', LABELS.INBOX),
           disabled: false,
         },
         {
           id: 'move-to-bin',
-          label: m['common.mail.moveToBin'](),
+          label: 'Move to bin',
           icon: <Trash className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleMove('', LABELS.TRASH),
           disabled: false,
@@ -382,14 +343,14 @@ export function ThreadContextMenu({
       return [
         {
           id: 'archive',
-          label: m['common.mail.archive'](),
+          label: 'Archive',
           icon: <Archive className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleMove(LABELS.SENT, ''),
           disabled: false,
         },
         {
           id: 'move-to-bin',
-          label: m['common.mail.moveToBin'](),
+          label: 'Move to bin',
           icon: <Trash className="mr-2.5 h-4 w-4 opacity-60" />,
           action: handleMove(LABELS.SENT, LABELS.TRASH),
           disabled: false,
@@ -400,21 +361,21 @@ export function ThreadContextMenu({
     return [
       {
         id: 'archive',
-        label: m['common.mail.archive'](),
+        label: 'Archive',
         icon: <Archive className="mr-2.5 h-4 w-4 opacity-60" />,
         action: handleMove(LABELS.INBOX, ''),
         disabled: false,
       },
       {
         id: 'move-to-spam',
-        label: m['common.mail.moveToSpam'](),
+        label: 'Move to spam',
         icon: <ArchiveX className="mr-2.5 h-4 w-4 opacity-60" />,
         action: handleMove(LABELS.INBOX, LABELS.SPAM),
         disabled: !isInbox,
       },
       {
         id: 'move-to-bin',
-        label: m['common.mail.moveToBin'](),
+        label: 'Move to Bin',
         icon: <Trash className="mr-2.5 h-4 w-4 opacity-60" />,
         action: handleMove(LABELS.INBOX, LABELS.TRASH),
         disabled: false,
@@ -426,7 +387,7 @@ export function ThreadContextMenu({
     () => [
       {
         id: 'toggle-read',
-        label: isUnread ? m['common.mail.markAsRead']() : m['common.mail.markAsUnread'](),
+        label: isUnread ? 'Mark as read' : 'Mark as unread',
         icon: !isUnread ? (
           <Mail className="mr-2.5 h-4 w-4 fill-[#9D9D9D] dark:fill-[#9D9D9D]" />
         ) : (
@@ -438,14 +399,14 @@ export function ThreadContextMenu({
       {
         id: 'toggle-important',
         label: isImportant
-          ? m['common.mail.removeFromImportant']()
-          : m['common.mail.markAsImportant'](),
+          ? 'Remove from important'
+          : 'Mark as important',
         icon: <ExclamationCircle className="mr-2.5 h-4 w-4 fill-[#9D9D9D] dark:fill-[#9D9D9D]" />,
         action: handleToggleImportant,
       },
       {
         id: 'favorite',
-        label: isStarred ? m['common.mail.removeFavorite']() : m['common.mail.addFavorite'](),
+        label: isStarred ? 'Remove favorite' : 'Add favorite',
         icon: isStarred ? (
           <StarOff className="mr-2.5 h-4 w-4 opacity-60" />
         ) : (
@@ -454,7 +415,7 @@ export function ThreadContextMenu({
         action: handleFavorites,
       },
     ],
-    [isUnread, isImportant, isStarred, m, handleReadUnread, handleToggleImportant, handleFavorites],
+    [isUnread, isImportant, isStarred, handleReadUnread, handleToggleImportant, handleFavorites],
   );
 
   const renderAction = (action: EmailAction) => {
@@ -488,7 +449,7 @@ export function ThreadContextMenu({
         <ContextMenuSub>
           <ContextMenuSubTrigger className="font-normal">
             <Tag className="mr-2.5 h-4 w-4 opacity-60" />
-            {m['common.mail.labels']()}
+            Labels
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="dark:bg-panelDark max-h-[520px] w-48 overflow-y-auto bg-white">
             <LabelsList threadId={threadId} bulkSelected={mail.bulkSelected} />

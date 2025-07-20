@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect, useRef } from 'react';
-import { useOptimisticActions } from './use-optimistic-actions';
+import { useDirectActions } from './use-direct-actions';
 import { useMail } from '@/components/mail/use-mail';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { atom, useAtom } from 'jotai';
@@ -19,7 +19,7 @@ export function useMailNavigation({ items, containerRef, onNavigate }: UseMailNa
   const [, setMail] = useMail();
   const [focusedIndex, setFocusedIndex] = useAtom(focusedIndexAtom);
   const [command, setCommand] = useAtom(mailNavigationCommandAtom);
-  const { optimisticMarkAsRead } = useOptimisticActions();
+  const { directMarkAsRead } = useDirectActions();
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const onNavigateRef = useRef(onNavigate);
@@ -81,7 +81,7 @@ export function useMailNavigation({ items, containerRef, onNavigate }: UseMailNa
 
       if (threadId) {
         onNavigateRef.current(threadId);
-        optimisticMarkAsRead([threadId], true);
+        directMarkAsRead([threadId], true);
       }
 
       setMail((prev) => ({
