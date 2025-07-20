@@ -1,117 +1,101 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTRPC } from '@/providers/query-provider';
+import { useCallback } from 'react';
+import { useSyncService } from '@/lib/sync-service';
+import { useActiveConnection } from '@/hooks/use-connections';
+import { SyncActionType } from '@/types/sync';
 import { useMail } from '@/components/mail/use-mail';
 import { useQueryState } from 'nuqs';
 import { toast } from 'sonner';
-import { useCallback } from 'react';
+import useBackgroundQueue from '@/hooks/ui/use-background-queue';
 import type { ThreadDestination } from '@/lib/thread-actions';
 
 export function useDirectActions() {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const { data: activeConnection } = useActiveConnection();
+  const { sendSyncMessage } = useSyncService(activeConnection?.id || null);
   const [mail, setMail] = useMail();
   const [threadId, setThreadId] = useQueryState('threadId');
   const [, setActiveReplyId] = useQueryState('activeReplyId');
+  const { addToQueue, deleteFromQueue } = useBackgroundQueue();
 
-  const { mutateAsync: markAsRead } = useMutation(trpc.mail.markAsRead.mutationOptions());
-  const { mutateAsync: markAsUnread } = useMutation(trpc.mail.markAsUnread.mutationOptions());
-  const { mutateAsync: toggleStar } = useMutation(trpc.mail.toggleStar.mutationOptions());
-  const { mutateAsync: toggleImportant } = useMutation(trpc.mail.toggleImportant.mutationOptions());
-  const { mutateAsync: bulkDeleteThread } = useMutation(trpc.mail.bulkDelete.mutationOptions());
-  const { mutateAsync: bulkArchive } = useMutation(trpc.mail.bulkArchive.mutationOptions());
-  const { mutateAsync: modifyLabels } = useMutation(trpc.mail.modifyLabels.mutationOptions());
+  const executeAction = useCallback(async (
+    actionType: SyncActionType,
+    threadIds: string[],
+    params: any = {},
+    toastMessage?: string
+  ) => {
+    if (!threadIds.length) return;
 
-  const refreshData = useCallback(async () => {
-    return await Promise.all([
-      queryClient.refetchQueries({ queryKey: trpc.mail.count.queryKey() }),
-      queryClient.refetchQueries({ queryKey: trpc.mail.listThreads.queryKey() }),
-    ]);
-  }, [queryClient, trpc]);
+    threadIds.forEach(id => addToQueue(id));
+
+    try {
+      sendSyncMessage({
+        type: 'sync_action' as any,
+        data: {
+          action: actionType,
+          threadIds,
+          params,
+        }
+      });
+
+      if (toastMessage) {
+        toast.success(toastMessage);
+      }
+
+      if (mail.bulkSelected.length > 0) {
+        setMail((prev) => ({ ...prev, bulkSelected: [] }));
+      }
+    } catch (error) {
+      console.error('Action failed:', error);
+      toast.error('Action failed');
+      threadIds.forEach(id => deleteFromQueue(id));
+    }
+  }, [sendSyncMessage, addToQueue, deleteFromQueue, mail.bulkSelected, setMail]);
 
   const directMarkAsRead = useCallback(
     async (threadIds: string[], silent = false) => {
-      if (!threadIds.length) return;
-
-      try {
-        await markAsRead({ ids: threadIds });
-        if (!silent) {
-          toast.success('Marked as read');
-        }
-        
-        if (mail.bulkSelected.length > 0) {
-          setMail((prev) => ({ ...prev, bulkSelected: [] }));
-        }
-        
-        await refreshData();
-      } catch (error) {
-        console.error('Failed to mark as read:', error);
-        toast.error('Failed to mark as read');
-      }
+      await executeAction(
+        SyncActionType.MARK_READ, 
+        threadIds, 
+        { read: true }, 
+        silent ? undefined : 'Marked as read'
+      );
     },
-    [markAsRead, mail.bulkSelected, setMail, refreshData]
+    [executeAction]
   );
 
   const directMarkAsUnread = useCallback(
     async (threadIds: string[]) => {
-      if (!threadIds.length) return;
-
-      try {
-        await markAsUnread({ ids: threadIds });
-        toast.success('Marked as unread');
-        
-        if (mail.bulkSelected.length > 0) {
-          setMail((prev) => ({ ...prev, bulkSelected: [] }));
-        }
-        
-        await refreshData();
-      } catch (error) {
-        console.error('Failed to mark as unread:', error);
-        toast.error('Failed to mark as unread');
-      }
+      await executeAction(
+        SyncActionType.MARK_UNREAD, 
+        threadIds, 
+        { read: false }, 
+        'Marked as unread'
+      );
     },
-    [markAsUnread, mail.bulkSelected, setMail, refreshData]
+    [executeAction]
   );
 
   const directToggleStar = useCallback(
     async (threadIds: string[], starred: boolean) => {
-      if (!threadIds.length) return;
-
-      try {
-        await toggleStar({ ids: threadIds });
-        toast.success(starred ? 'Added to favorites' : 'Removed from favorites');
-        
-        if (mail.bulkSelected.length > 0) {
-          setMail((prev) => ({ ...prev, bulkSelected: [] }));
-        }
-        
-        await refreshData();
-      } catch (error) {
-        console.error('Failed to toggle star:', error);
-        toast.error('Failed to update favorites');
-      }
+      await executeAction(
+        SyncActionType.TOGGLE_STAR, 
+        threadIds, 
+        { starred }, 
+        starred ? 'Added to favorites' : 'Removed from favorites'
+      );
     },
-    [toggleStar, mail.bulkSelected, setMail, refreshData]
+    [executeAction]
   );
 
   const directToggleImportant = useCallback(
     async (threadIds: string[], isImportant: boolean) => {
-      if (!threadIds.length) return;
-
-      try {
-        await toggleImportant({ ids: threadIds });
-        toast.success(isImportant ? 'Marked as important' : 'Unmarked as important');
-        
-        if (mail.bulkSelected.length > 0) {
-          setMail((prev) => ({ ...prev, bulkSelected: [] }));
-        }
-        
-        await refreshData();
-      } catch (error) {
-        console.error('Failed to toggle important:', error);
-        toast.error('Failed to update importance');
-      }
+      await executeAction(
+        SyncActionType.TOGGLE_IMPORTANT, 
+        threadIds, 
+        { important: isImportant }, 
+        isImportant ? 'Marked as important' : 'Unmarked as important'
+      );
     },
-    [toggleImportant, mail.bulkSelected, setMail, refreshData]
+    [executeAction]
   );
 
   const directMoveThreadsTo = useCallback(
@@ -120,98 +104,79 @@ export function useDirectActions() {
 
       try {
         if (destination === 'archive') {
-          await bulkArchive({ ids: threadIds });
-          toast.success('Archived');
+          await executeAction(
+            SyncActionType.BULK_ARCHIVE, 
+            threadIds, 
+            {}, 
+            'Archived'
+          );
         } else if (destination === 'bin') {
-          await bulkDeleteThread({ ids: threadIds });
-          toast.success('Moved to bin');
+          await executeAction(
+            SyncActionType.BULK_DELETE, 
+            threadIds, 
+            {}, 
+            'Moved to bin'
+          );
         } else {
           const addLabels = destination === 'inbox' ? ['INBOX'] : destination === 'spam' ? ['SPAM'] : [];
           const removeLabels = currentFolder === 'inbox' ? ['INBOX'] : currentFolder === 'spam' ? ['SPAM'] : [];
           
-          await modifyLabels({
-            threadId: threadIds,
-            addLabels,
-            removeLabels,
-          });
-          
-          const successMessage = destination === 'inbox' ? 'Moved to inbox' : 
-                                destination === 'spam' ? 'Moved to spam' : 
-                                'Moved successfully';
-          toast.success(successMessage);
+          await executeAction(
+            SyncActionType.MODIFY_LABELS,
+            threadIds,
+            { addLabels, removeLabels },
+            destination === 'inbox' ? 'Moved to inbox' : 
+            destination === 'spam' ? 'Moved to spam' : 
+            'Moved successfully'
+          );
         }
 
         if (threadId && threadIds.includes(threadId)) {
           setThreadId(null);
           setActiveReplyId(null);
         }
-
-        if (mail.bulkSelected.length > 0) {
-          setMail((prev) => ({ ...prev, bulkSelected: [] }));
-        }
-        
-        await refreshData();
       } catch (error) {
         console.error('Failed to move threads:', error);
         toast.error('Failed to move emails');
       }
     },
-    [bulkArchive, bulkDeleteThread, modifyLabels, threadId, setThreadId, setActiveReplyId, mail.bulkSelected, setMail, refreshData]
+    [executeAction, threadId, setThreadId, setActiveReplyId]
   );
 
   const directDeleteThreads = useCallback(
     async (threadIds: string[], _currentFolder: string) => {
-      if (!threadIds.length) return;
+      await executeAction(
+        SyncActionType.BULK_DELETE, 
+        threadIds, 
+        {}, 
+        'Moved to bin'
+      );
 
-      try {
-        await bulkDeleteThread({ ids: threadIds });
-        toast.success('Moved to bin');
-
-        if (threadId && threadIds.includes(threadId)) {
-          setThreadId(null);
-          setActiveReplyId(null);
-        }
-
-        if (mail.bulkSelected.length > 0) {
-          setMail((prev) => ({ ...prev, bulkSelected: [] }));
-        }
-        
-        await refreshData();
-      } catch (error) {
-        console.error('Failed to delete threads:', error);
-        toast.error('Failed to delete emails');
+      if (threadId && threadIds.includes(threadId)) {
+        setThreadId(null);
+        setActiveReplyId(null);
       }
     },
-    [bulkDeleteThread, threadId, setThreadId, setActiveReplyId, mail.bulkSelected, setMail, refreshData]
+    [executeAction, threadId, setThreadId, setActiveReplyId]
   );
 
   const directToggleLabel = useCallback(
     async (threadIds: string[], labelId: string, add: boolean) => {
       if (!threadIds.length || !labelId) return;
 
-      try {
-        await modifyLabels({
-          threadId: threadIds,
+      await executeAction(
+        SyncActionType.MODIFY_LABELS,
+        threadIds,
+        {
           addLabels: add ? [labelId] : [],
           removeLabels: add ? [] : [labelId],
-        });
-
-        const message = add
+        },
+        add
           ? `Label added${threadIds.length > 1 ? ` to ${threadIds.length} threads` : ''}`
-          : `Label removed${threadIds.length > 1 ? ` from ${threadIds.length} threads` : ''}`;
-        toast.success(message);
-
-        if (mail.bulkSelected.length > 0) {
-          setMail((prev) => ({ ...prev, bulkSelected: [] }));
-        }
-        
-        await refreshData();
-      } catch (error) {
-        console.error('Failed to toggle label:', error);
-        toast.error('Failed to update label');
-      }
+          : `Label removed${threadIds.length > 1 ? ` from ${threadIds.length} threads` : ''}`
+      );
     },
-    [modifyLabels, mail.bulkSelected, setMail, refreshData]
+    [executeAction]
   );
 
   return {

@@ -57,6 +57,10 @@ export function useSyncService(connectionId: string | null) {
             
           case 'sync_action_complete':
             console.log('Sync action completed:', data);
+            if (data.threadIds && Array.isArray(data.threadIds)) {
+              data.threadIds.forEach((threadId: string) => {
+              });
+            }
             break;
         }
       } catch (error) {
