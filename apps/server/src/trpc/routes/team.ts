@@ -104,11 +104,11 @@ export const teamRouter = router({
         return {
           team: team
             ? {
-                id: team.id,
-                name: team.name,
-                createdAt: team.createdAt,
-                updatedAt: team.updatedAt,
-              }
+              id: team.id,
+              name: team.name,
+              createdAt: team.createdAt,
+              updatedAt: team.updatedAt,
+            }
             : null,
         };
       } catch (error) {
@@ -125,11 +125,8 @@ export const teamRouter = router({
     .query(async ({ input, ctx }) => {
       try {
         const { teamId } = input;
-        console.log('listTeamMembers input', { teamId });
         const members = await ctx.c.var.auth.api.listTeamMembers({
-          query: {
-            teamId,
-          },
+          query: { teamId },
           headers: ctx.c.req.raw.headers,
         });
         console.log('listTeamMembers members', members);

@@ -8,10 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { useEffect } from 'react';
 
 const schema = z.object({
   name: z.string().min(2, 'Team name is required'),
@@ -29,10 +28,11 @@ interface Team {
   updated_at: Date | null;
 }
 
-export function TeamManager({ orgId }: TeamManagerProps) {
+export function TeamManager({ orgId, orgSlug }: TeamManagerProps & { orgSlug: string }) {
   const [loading, setLoading] = useState(false);
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const trpc = useTRPC();
+  const setActiveOrgMutation = useMutation(trpc.organization.setActiveOrganization.mutationOptions());
 
   const {
     register,
@@ -105,10 +105,36 @@ export function TeamManager({ orgId }: TeamManagerProps) {
   function EditableRow({ team }: { team: Team }) {
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(team.name);
+    const [activeOrgSet, setActiveOrgSet] = useState(false);
+
+    console.log('EditableRow render for team', team.id);
+
+    useEffect(() => {
+      console.log('Ensuring active org for team', team.id);
+      let cancelled = false;
+      async function ensureActiveOrg() {
+        if (!orgId || !orgSlug) return;
+        try {
+          const result = await setActiveOrgMutation.mutateAsync({ organizationId: orgId, organizationSlug: orgSlug });
+          console.log('setActiveOrgMutation result for team', team.id, ':', result);
+          if (!cancelled) setActiveOrgSet(true);
+        } catch (e) {
+          console.error('setActiveOrgMutation error for team', team.id, ':', e);
+          if (!cancelled) setActiveOrgSet(false);
+        }
+      }
+      ensureActiveOrg();
+      return () => { cancelled = true; };
+    }, [orgId, orgSlug, team.id]);
+
     const { data: teamMembersData, refetch: refetchTeamMembers } = useQuery({
       ...listTeamMembersQuery(team.id),
-      enabled: !!team.id,
+      enabled: !!team.id && activeOrgSet,
     }) as any;
+
+    useEffect(() => {
+      console.log('teamMembersData for team', team.id, ':', teamMembersData);
+    }, [teamMembersData, team.id]);
 
     async function save() {
       if (!name.trim() || name === team.name || !orgId) {
