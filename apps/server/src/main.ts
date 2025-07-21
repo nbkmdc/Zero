@@ -271,13 +271,24 @@ class ZeroDB extends DurableObject<Env> {
   }
 
   async findFirstOrganization(userId: string) {
-    const orgMember = await this.db.query.member.findFirst({
-      where: (member, { eq }) => eq(member.userId, userId),
-    });
-    if (!orgMember) return undefined;
-    return await this.db.query.organization.findFirst({
-      where: (organization, { eq }) => eq(organization.id, orgMember.organizationId),
-    });
+    const result = await this.db
+      .select({
+        organization: organization,
+        role: member.role,
+      })
+      .from(member)
+      .leftJoin(organization, eq(member.organizationId, organization.id))
+      .where(eq(member.userId, userId))
+      .limit(1);
+
+    if (!result.length || !result[0].organization) {
+      return undefined;
+    }
+
+    return {
+      ...result[0].organization,
+      role: result[0].role,
+    };
   }
 
   async findManyNotesByThreadId(

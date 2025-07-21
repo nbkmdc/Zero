@@ -23,6 +23,7 @@ type AutumnContext = {
     } | null;
     orgData: {
       organizationId: string;
+      role: 'owner' | 'admin' | 'member';
     } | null;
   };
 } & HonoContext;
@@ -53,7 +54,7 @@ export const autumnApi = new Hono<AutumnContext>()
     const db = getZeroDB(sessionUser.id);
     const org = await db.findFirstOrganization();
     if (org) {
-      c.set('orgData', { organizationId: org.id });
+      c.set('orgData', { organizationId: org.id, role: org.role });
     } else {
       c.set('orgData', null);
     }
@@ -145,6 +146,10 @@ export const autumnApi = new Hono<AutumnContext>()
     const body = await c.req.json();
     if (!customerData) return c.json({ error: 'No customer ID found' }, 401);
 
+    if (orgData && orgData.role !== 'owner') {
+      return c.json({ error: 'Only owners can access the billing portal' }, 403);
+    }
+
     return c.json(
       await autumn.customers
         .billingPortal(orgData?.organizationId ?? customerData.customerId, body)
@@ -155,6 +160,10 @@ export const autumnApi = new Hono<AutumnContext>()
     const { autumn, customerData, orgData } = c.var;
     const body = await c.req.json();
     if (!customerData) return c.json({ error: 'No customer ID found' }, 401);
+
+    if (orgData && orgData.role !== 'owner') {
+      return c.json({ error: 'Only owners can access the billing portal' }, 403);
+    }
 
     return c.json(
       await autumn.customers
