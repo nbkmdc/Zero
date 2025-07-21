@@ -724,9 +724,9 @@ export const organizationRouter = router({
     }
   }),
   setActiveOrganization: privateProcedure
-    .input(z.object({ organizationId: z.string() }))
+    .input(z.object({ organizationId: z.string(), organizationSlug: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { organizationId } = input;
+      const { organizationId, organizationSlug } = input;
       const { sessionUser } = ctx;
       const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
       try {
@@ -734,6 +734,15 @@ export const organizationRouter = router({
           .update(user)
           .set({ activeOrganizationId: organizationId })
           .where(eq(user.id, sessionUser.id));
+
+        await ctx.c.var.auth.api.setActiveOrganization({
+          body: {
+            organizationId: organizationId,
+            organizationSlug: organizationSlug,
+          },
+          headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
+        });
         return { success: true } as const;
       } finally {
         await conn.end();

@@ -1,4 +1,5 @@
 import { activeConnectionProcedure, router } from '../trpc';
+import { getZeroDB } from '../../lib/server-utils';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -29,10 +30,12 @@ export const teamRouter = router({
       try {
         const { organizationId, name } = input;
         const team = await ctx.c.var.auth.api.createTeam({
-          query: {
+          body: {
             organizationId,
             name,
           },
+          headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
         });
         return { success: true, id: team.id } as const;
       } catch (error) {
@@ -49,12 +52,16 @@ export const teamRouter = router({
       try {
         const { teamId, name } = input;
         const team = await ctx.c.var.auth.api.updateTeam({
-          teamId,
-          query: {
-            name,
+          body: {
+            teamId,
+            data: {
+              name,
+            },
           },
+          headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
         });
-        return { success: true, id: team.id } as const;
+        return { success: true, id: team?.id } as const;
       } catch (error) {
         console.error(error);
         throw new TRPCError({
@@ -68,14 +75,15 @@ export const teamRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const { organizationId, teamId } = input;
-        const team = await ctx.c.var.auth.api.removeTeam({
-          query: {
+        await ctx.c.var.auth.api.removeTeam({
+          body: {
             teamId,
             organizationId,
           },
           headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
         });
-        return { success: true, id: team.id } as const;
+        return { success: true } as const;
       } catch (error) {
         console.error(error);
         throw new TRPCError({
@@ -90,13 +98,19 @@ export const teamRouter = router({
     .query(async ({ input, ctx }) => {
       try {
         const { teamId } = input;
-        const team = await ctx.c.var.auth.api.getTeam({
-          query: {
-            teamId,
-          },
-          headers: ctx.c.req.raw.headers,
-        });
-        return { team };
+        const { sessionUser } = ctx;
+        const db = getZeroDB(sessionUser.id);
+        const team = await db.findTeam(teamId);
+        return {
+          team: team
+            ? {
+                id: team.id,
+                name: team.name,
+                createdAt: team.createdAt,
+                updatedAt: team.updatedAt,
+              }
+            : null,
+        };
       } catch (error) {
         console.error(error);
         throw new TRPCError({
@@ -136,7 +150,7 @@ export const teamRouter = router({
         const { teamId, userId } = input;
         console.log('addTeamMember input', { teamId, userId });
         await ctx.c.var.auth.api.addTeamMember({
-          query: {
+          body: {
             teamId,
             userId,
           },
@@ -159,11 +173,12 @@ export const teamRouter = router({
       try {
         const { teamId, userId } = input;
         await ctx.c.var.auth.api.removeTeamMember({
-          query: {
+          body: {
             teamId,
             userId,
           },
           headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
         });
         return { success: true };
       } catch (error) {
@@ -181,10 +196,11 @@ export const teamRouter = router({
       try {
         const { teamId } = input;
         await ctx.c.var.auth.api.setActiveTeam({
-          query: {
+          body: {
             teamId,
           },
           headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
         });
         return { success: true };
       } catch (error) {

@@ -34,6 +34,9 @@ export default function OrganizationPage() {
     ...trpc.organization.getUsersActiveOrganizationId.queryOptions(),
   });
 
+  // const { data: activeOrganizationId, refetch: refetchActiveOrganizationId } =
+  //   authClient.useActiveOrganization();
+
   const setActiveOrganizationMutation = useMutation(
     trpc.organization.setActiveOrganization.mutationOptions({
       onSuccess: () => {
@@ -48,6 +51,7 @@ export default function OrganizationPage() {
   const handleSetActiveOrganization = async (org: any) => {
     await setActiveOrganizationMutation.mutateAsync({
       organizationId: org.id,
+      organizationSlug: org.slug,
     });
     refetchActiveOrganizationId();
   };

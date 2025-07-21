@@ -10,6 +10,7 @@ import {
   note,
   organizationDomain,
   session,
+  team,
   user,
   userHotkeys,
   userSettings,
@@ -75,6 +76,10 @@ export class DbRpcDO extends RpcTarget {
 
   async findManyConnections(): Promise<(typeof connection.$inferSelect)[]> {
     return await this.mainDo.findManyConnections(this.userId);
+  }
+
+  async findTeam(teamId: string): Promise<typeof team.$inferSelect | undefined> {
+    return await this.mainDo.findTeam(teamId);
   }
 
   async findManyNotesByThreadId(threadId: string): Promise<(typeof note.$inferSelect)[]> {
@@ -240,6 +245,12 @@ class ZeroDB extends DurableObject<Env> {
   async findManyConnections(userId: string): Promise<(typeof connection.$inferSelect)[]> {
     return await this.db.query.connection.findMany({
       where: eq(connection.userId, userId),
+    });
+  }
+
+  async findTeam(teamId: string): Promise<typeof team.$inferSelect | undefined> {
+    return await this.db.query.team.findFirst({
+      where: eq(team.id, teamId),
     });
   }
 
