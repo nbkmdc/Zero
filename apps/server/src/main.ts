@@ -15,6 +15,8 @@ import {
   userHotkeys,
   userSettings,
   writingStyleMatrix,
+  organization,
+  member,
 } from './db/schema';
 import { DurableObject, env, RpcTarget, WorkerEntrypoint } from 'cloudflare:workers';
 import { EProviders, type ISubscribeBatch, type IThreadBatch } from './types';
@@ -80,6 +82,14 @@ export class DbRpcDO extends RpcTarget {
 
   async findTeam(teamId: string): Promise<typeof team.$inferSelect | undefined> {
     return await this.mainDo.findTeam(teamId);
+  }
+
+  async findOrganization(organizationId: string) {
+    return this.mainDo.findOrganization(organizationId);
+  }
+
+  async findFirstOrganization() {
+    return this.mainDo.findFirstOrganization(this.userId);
   }
 
   async findManyNotesByThreadId(threadId: string): Promise<(typeof note.$inferSelect)[]> {
@@ -251,6 +261,22 @@ class ZeroDB extends DurableObject<Env> {
   async findTeam(teamId: string): Promise<typeof team.$inferSelect | undefined> {
     return await this.db.query.team.findFirst({
       where: eq(team.id, teamId),
+    });
+  }
+
+  async findOrganization(organizationId: string) {
+    return await this.db.query.organization.findFirst({
+      where: eq(organization.id, organizationId),
+    });
+  }
+
+  async findFirstOrganization(userId: string) {
+    const orgMember = await this.db.query.member.findFirst({
+      where: (member, { eq }) => eq(member.userId, userId),
+    });
+    if (!orgMember) return undefined;
+    return await this.db.query.organization.findFirst({
+      where: (organization, { eq }) => eq(organization.id, orgMember.organizationId),
     });
   }
 

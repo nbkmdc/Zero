@@ -45,6 +45,28 @@ export const getActiveConnection = async () => {
   return firstConnection;
 };
 
+export const getActiveOrganization = async () => {
+  const c = getContext<HonoContext>();
+  const { sessionUser } = c.var;
+  if (!sessionUser) throw new Error('Session Not Found');
+
+  const db = getZeroDB(sessionUser.id);
+  const userData = await db.findUser();
+
+  if (userData?.activeOrganizationId) {
+    const activeOrganization = await db.findOrganization(userData.activeOrganizationId);
+    if (activeOrganization) return activeOrganization;
+  }
+
+  const firstOrganization = await db.findFirstOrganization();
+  if (!firstOrganization) {
+    console.error(`No organization found for user ${sessionUser.id}`);
+    throw new Error('No organization found for user');
+  }
+
+  return firstOrganization;
+};
+
 export const connectionToDriver = (activeConnection: typeof connection.$inferSelect) => {
   if (!activeConnection.accessToken || !activeConnection.refreshToken) {
     throw new Error(`Invalid connection ${JSON.stringify(activeConnection?.id)}`);

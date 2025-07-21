@@ -1,4 +1,4 @@
-import { getActiveConnection, getZeroDB } from '../lib/server-utils';
+import { getActiveConnection, getZeroDB, getActiveOrganization } from '../lib/server-utils';
 import { Ratelimit, type RatelimitConfig } from '@upstash/ratelimit';
 import type { HonoContext, HonoVariables } from '../ctx';
 import { getConnInfo } from 'hono/cloudflare-workers';
@@ -41,6 +41,18 @@ export const activeConnectionProcedure = privateProcedure.use(async ({ ctx, next
 });
 
 const permissionErrors = ['precondition check', 'insufficient permission', 'invalid credentials'];
+export const organizationProcedure = privateProcedure.use(async ({ ctx, next }) => {
+  try {
+    const activeOrganization = await getActiveOrganization();
+    return next({ ctx: { ...ctx, activeOrganization } });
+  } catch (err) {
+    await ctx.c.var.auth.api.signOut({ headers: ctx.c.req.raw.headers });
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: err instanceof Error ? err.message : 'Failed to get active organization',
+    });
+  }
+});
 
 export const activeDriverProcedure = activeConnectionProcedure.use(async ({ ctx, next }) => {
   const { activeConnection, sessionUser } = ctx;
