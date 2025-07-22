@@ -3,7 +3,7 @@ import { getSubscriptionFactory } from './factories/subscription-factory.registr
 import { AiChatPrompt, StyledEmailAssistantSystemPrompt } from './prompts';
 import { EPrompts, EProviders } from '../types';
 import { getPromptName } from '../pipelines';
-import { env } from 'cloudflare:workers';
+import { env } from '../env';
 
 export const enableBrainFunction = async (connection: { id: string; providerId: EProviders }) => {
   try {

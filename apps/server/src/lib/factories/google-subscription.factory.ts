@@ -1,7 +1,7 @@
 import { BaseSubscriptionFactory, type SubscriptionData } from './base-subscription.factory';
 import { c, getNotificationsUrl } from '../../lib/utils';
 import jwt from '@tsndr/cloudflare-worker-jwt';
-import { env } from 'cloudflare:workers';
+import { env } from '../../env';
 import { EProviders } from '../../types';
 
 interface GoogleServiceAccount {

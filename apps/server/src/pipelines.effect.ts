@@ -26,7 +26,7 @@ import { defaultLabels, EPrompts, EProviders, type ParsedMessage, type Sender } 
 import { getZeroAgent } from './lib/server-utils';
 import { type gmail_v1 } from '@googleapis/gmail';
 import { getPromptName } from './pipelines';
-import { env } from 'cloudflare:workers';
+import { env } from './env';
 import { connection } from './db/schema';
 import { Effect, Console } from 'effect';
 import * as cheerio from 'cheerio';
