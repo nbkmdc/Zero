@@ -50,7 +50,7 @@ export const getActiveOrganization = async () => {
   const { sessionUser } = c.var;
   if (!sessionUser) throw new Error('Session Not Found');
 
-  const db = getZeroDB(sessionUser.id);
+  const db = await getZeroDB(sessionUser.id);
   const userData = await db.findUser();
 
   if (userData?.activeOrganizationId) {
