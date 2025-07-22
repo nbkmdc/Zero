@@ -46,6 +46,11 @@ catalogs:
       specifier: ^3.25.42
       version: 3.25.67
 
+patchedDependencies:
+  novel:
+    hash: 4e642d3ebfc8b39cf357dfe855ef6e0f5ebb3f6705776e1d7f2acc7ee8a973ec
+    path: patches/novel.patch
+
 importers:
 
   .:
