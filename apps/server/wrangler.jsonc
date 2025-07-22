@@ -116,6 +116,7 @@
         "THREAD_SYNC_LOOP": "false",
         "DISABLE_WORKFLOWS": "true",
         "AUTORAG_ID": "",
+        "CLOUDFLARE_INTERNAL_SECRET": "internal-secret-dev",
       },
       "kv_namespaces": [
         {
@@ -260,6 +261,7 @@
         "THREAD_SYNC_MAX_COUNT": "20",
         "THREAD_SYNC_LOOP": "true",
         "DISABLE_WORKFLOWS": "true",
+        "CLOUDFLARE_INTERNAL_SECRET": "internal-secret-staging",
       },
       "kv_namespaces": [
         {
@@ -401,6 +403,7 @@
         "THREAD_SYNC_MAX_COUNT": "10",
         "THREAD_SYNC_LOOP": "true",
         "DISABLE_WORKFLOWS": "true",
+        "CLOUDFLARE_INTERNAL_SECRET": "internal-secret-prod",
       },
       "kv_namespaces": [
         {

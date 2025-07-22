@@ -15,7 +15,6 @@ import {
   writingStyleMatrix,
 } from './db/schema';
 import { WorkerEntrypoint, DurableObject, RpcTarget } from 'cloudflare:workers';
-import { env } from './env';
 import { EProviders, type ISubscribeBatch, type IThreadBatch } from './types';
 import { oAuthDiscoveryMetadata } from 'better-auth/plugins';
 import { getZeroDB, verifyToken } from './lib/server-utils';
@@ -41,6 +40,7 @@ import { Autumn } from 'autumn-js';
 import { appRouter } from './trpc';
 import { cors } from 'hono/cors';
 import { Effect } from 'effect';
+import { env } from './env';
 import { Hono } from 'hono';
 
 const SENTRY_HOST = 'o4509328786915328.ingest.us.sentry.io';
@@ -565,6 +565,225 @@ export default class extends WorkerEntrypoint<typeof env> {
       );
     });
 
+  private createInternalRoutes() {
+    return new Hono<HonoContext>()
+      .use('*', async (c, next) => {
+        const authHeader = c.req.header('Authorization');
+        const expectedSecret = env.CLOUDFLARE_INTERNAL_SECRET || 'internal-secret';
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return c.json({ success: false, error: 'Missing authorization' }, 401);
+        }
+
+        const token = authHeader.split(' ')[1];
+        if (token !== expectedSecret) {
+          return c.json({ success: false, error: 'Invalid authorization' }, 401);
+        }
+
+        await next();
+      })
+      .post('/durable-objects/:type/:id/:method', async (c) => {
+        try {
+          const { type, id, method } = c.req.param();
+          const { args } = await c.req.json();
+
+          let stub;
+          switch (type) {
+            case 'ZERO_DB':
+              stub = env.ZERO_DB.get(env.ZERO_DB.idFromName(id));
+              break;
+            case 'ZERO_AGENT':
+              stub = env.ZERO_AGENT.get(env.ZERO_AGENT.idFromName(id));
+              break;
+            case 'ZERO_MCP':
+              stub = env.ZERO_MCP.get(env.ZERO_MCP.idFromName(id));
+              break;
+            case 'ZERO_DRIVER':
+              stub = env.ZERO_DRIVER.get(env.ZERO_DRIVER.idFromName(id));
+              break;
+            default:
+              return c.json({ success: false, error: 'Unknown durable object type' }, 400);
+          }
+
+          const result = await (stub as any)[method](...args);
+          return c.json({ success: true, data: result });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .get('/kv/:namespace/:key', async (c) => {
+        try {
+          const { namespace, key } = c.req.param();
+          const kvNamespace = (env as any)[namespace];
+          if (!kvNamespace) {
+            return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
+          }
+
+          const result = await kvNamespace.get(key);
+          return c.json({ success: true, data: result });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .put('/kv/:namespace/:key', async (c) => {
+        try {
+          const { namespace, key } = c.req.param();
+          const { value, metadata } = await c.req.json();
+          const kvNamespace = (env as any)[namespace];
+          if (!kvNamespace) {
+            return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
+          }
+
+          await kvNamespace.put(key, value, metadata ? { metadata } : undefined);
+          return c.json({ success: true });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .delete('/kv/:namespace/:key', async (c) => {
+        try {
+          const { namespace, key } = c.req.param();
+          const kvNamespace = (env as any)[namespace];
+          if (!kvNamespace) {
+            return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
+          }
+
+          await kvNamespace.delete(key);
+          return c.json({ success: true });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .get('/kv/:namespace', async (c) => {
+        try {
+          const { namespace } = c.req.param();
+          const kvNamespace = (env as any)[namespace];
+          if (!kvNamespace) {
+            return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
+          }
+
+          const url = new URL(c.req.url);
+          const options: any = {};
+          if (url.searchParams.get('cursor')) options.cursor = url.searchParams.get('cursor');
+          if (url.searchParams.get('limit'))
+            options.limit = parseInt(url.searchParams.get('limit')!);
+
+          const result = await kvNamespace.list(options);
+          return c.json({ success: true, data: result });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .post('/queue/:name/send', async (c) => {
+        try {
+          const { name } = c.req.param();
+          const { message } = await c.req.json();
+
+          let queue;
+          switch (name) {
+            case 'thread_queue':
+              queue = env.thread_queue;
+              break;
+            case 'subscribe_queue':
+              queue = env.subscribe_queue;
+              break;
+            default:
+              return c.json({ success: false, error: 'Unknown queue' }, 400);
+          }
+
+          await queue.send(message);
+          return c.json({ success: true });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .get('/r2/:bucket/:key', async (c) => {
+        try {
+          const { bucket, key } = c.req.param();
+          let r2Bucket;
+
+          switch (bucket) {
+            case 'THREADS_BUCKET':
+              r2Bucket = env.THREADS_BUCKET;
+              break;
+            default:
+              return c.json({ success: false, error: 'Unknown R2 bucket' }, 400);
+          }
+
+          const result = await r2Bucket.get(key);
+          return c.json({ success: true, data: result });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .put('/r2/:bucket/:key', async (c) => {
+        try {
+          const { bucket, key } = c.req.param();
+          const { value, metadata } = await c.req.json();
+          let r2Bucket;
+
+          switch (bucket) {
+            case 'THREADS_BUCKET':
+              r2Bucket = env.THREADS_BUCKET;
+              break;
+            default:
+              return c.json({ success: false, error: 'Unknown R2 bucket' }, 400);
+          }
+
+          await r2Bucket.put(key, value, metadata ? { customMetadata: metadata } : undefined);
+          return c.json({ success: true });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      })
+      .delete('/r2/:bucket/:key', async (c) => {
+        try {
+          const { bucket, key } = c.req.param();
+          let r2Bucket;
+
+          switch (bucket) {
+            case 'THREADS_BUCKET':
+              r2Bucket = env.THREADS_BUCKET;
+              break;
+            default:
+              return c.json({ success: false, error: 'Unknown R2 bucket' }, 400);
+          }
+
+          await r2Bucket.delete(key);
+          return c.json({ success: true });
+        } catch (error) {
+          return c.json(
+            { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+            500,
+          );
+        }
+      });
+  }
+
   private app = new Hono<HonoContext>()
     .use(
       '*',
@@ -629,6 +848,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       { replaceRequest: false },
     )
     .route('/api', this.api)
+    .route('/internal', this.createInternalRoutes())
     .use(
       '*',
       agentsMiddleware({
