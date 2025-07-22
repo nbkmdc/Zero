@@ -1,21 +1,24 @@
-import { activeConnectionProcedure, router } from '../trpc';
+import { activeConnectionProcedure, privateProcedure, router } from '../trpc';
 import { getZeroDB } from '../../lib/server-utils';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 export const teamRouter = router({
-  listTeams: activeConnectionProcedure
+  listTeams: privateProcedure
     .input(z.object({ organizationId: z.string() }))
     .query(async ({ input, ctx }) => {
       try {
         const { organizationId } = input;
+        console.log('listTeams organizationId', organizationId);
         const teams = await ctx.c.var.auth.api.listOrganizationTeams({
           headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
           query: {
             organizationId,
           },
         });
-        return { teams: Array.isArray(teams) ? teams : [] } as const;
+        console.log('listTeams teams', teams);
+        return teams;
       } catch (error) {
         console.error(error);
         throw new TRPCError({
@@ -104,11 +107,11 @@ export const teamRouter = router({
         return {
           team: team
             ? {
-              id: team.id,
-              name: team.name,
-              createdAt: team.createdAt,
-              updatedAt: team.updatedAt,
-            }
+                id: team.id,
+                name: team.name,
+                createdAt: team.createdAt,
+                updatedAt: team.updatedAt,
+              }
             : null,
         };
       } catch (error) {
@@ -121,13 +124,14 @@ export const teamRouter = router({
     }),
 
   listTeamMembers: activeConnectionProcedure
-    .input(z.object({ teamId: z.string() }))
+    .input(z.object({ teamId: z.string(), organizationId: z.string() }))
     .query(async ({ input, ctx }) => {
       try {
-        const { teamId } = input;
+        const { teamId, organizationId } = input;
         const members = await ctx.c.var.auth.api.listTeamMembers({
-          query: { teamId },
+          query: { teamId, organizationId },
           headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
         });
         console.log('listTeamMembers members', members);
         return { members };
@@ -151,7 +155,6 @@ export const teamRouter = router({
             teamId,
             userId,
           },
-          headers: ctx.c.req.raw.headers,
         });
         console.log('addTeamMember success');
         return { success: true };

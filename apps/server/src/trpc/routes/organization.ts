@@ -10,6 +10,7 @@ import {
   session,
 } from '../../db/schema';
 import { router, publicProcedure, privateProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 import { eq, and } from 'drizzle-orm';
 import dns from 'node:dns/promises';
 import { createDb } from '../../db';
@@ -90,19 +91,6 @@ export const organizationRouter = router({
                 and(eq(member.organizationId, organizationId), eq(member.userId, sessionUser.id)),
               );
 
-            // Update user's activeOrganizationId if it was this org
-            const userRecord = await tx
-              .select()
-              .from(user)
-              .where(eq(user.id, sessionUser.id))
-              .limit(1);
-            if (userRecord[0]?.activeOrganizationId === organizationId) {
-              await tx
-                .update(user)
-                .set({ activeOrganizationId: null })
-                .where(eq(user.id, sessionUser.id));
-            }
-
             // Update session's activeOrganizationId if it was this org
             await tx
               .update(session)
@@ -130,7 +118,7 @@ export const organizationRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const { domain, verificationToken: providedToken } = input;
-      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+      const { conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
       try {
         const verificationToken = providedToken || nanoid();
         try {
@@ -276,13 +264,19 @@ export const organizationRouter = router({
         await conn.end();
       }
     }),
-  list: publicProcedure.query(async ({ ctx }) => {
-    const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
+  list: privateProcedure.query(async ({ ctx }) => {
     try {
-      const orgs = await db.select().from(organization);
+      const orgs = await ctx.c.var.auth.api.listOrganizations({
+        headers: ctx.c.req.raw.headers,
+        request: ctx.c.req.raw,
+      });
       return { organizations: orgs } as const;
-    } finally {
-      await conn.end();
+    } catch (error) {
+      console.error('listOrganizations error', error);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to list organizations',
+      });
     }
   }),
   create: privateProcedure
@@ -295,36 +289,25 @@ export const organizationRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { name, slug, logo, metadata } = input;
-      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
       try {
-        const id = nanoid();
-        const finalSlug =
-          slug ||
-          name
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9\-]/g, '');
-        await db.insert(organization).values({
-          id,
-          name,
-          slug: finalSlug,
-          logo,
-          metadata: metadata ? JSON.stringify(metadata) : null,
-          createdAt: new Date(),
+        const { name, slug, logo, metadata } = input;
+        const org = await ctx.c.var.auth.api.createOrganization({
+          body: {
+            name,
+            slug: slug!,
+            logo: logo!,
+            metadata: metadata!,
+          },
+          headers: ctx.c.req.raw.headers,
+          request: ctx.c.req.raw,
         });
-        if (ctx.sessionUser) {
-          await db.insert(member).values({
-            id: nanoid(),
-            userId: ctx.sessionUser.id,
-            organizationId: id,
-            role: 'owner',
-            createdAt: new Date(),
-          });
-        }
-        return { success: true, organizationId: id } as const;
-      } finally {
-        await conn.end();
+        return { success: true, id: org?.id } as const;
+      } catch (error) {
+        console.error('createTeam error', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create team',
+        });
       }
     }),
   get: publicProcedure
@@ -713,28 +696,11 @@ export const organizationRouter = router({
         await conn.end();
       }
     }),
-
-  getUsersActiveOrganizationId: privateProcedure.query(async ({ ctx }) => {
-    const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
-    try {
-      const [data] = await db.select().from(user).where(eq(user.id, ctx.sessionUser.id));
-      return { activeOrganizationId: data?.activeOrganizationId } as const;
-    } finally {
-      await conn.end();
-    }
-  }),
   setActiveOrganization: privateProcedure
     .input(z.object({ organizationId: z.string(), organizationSlug: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const { organizationId, organizationSlug } = input;
-      const { sessionUser } = ctx;
-      const { db, conn } = createDb(ctx.c.env.HYPERDRIVE.connectionString);
       try {
-        await db
-          .update(user)
-          .set({ activeOrganizationId: organizationId })
-          .where(eq(user.id, sessionUser.id));
-
         await ctx.c.var.auth.api.setActiveOrganization({
           body: {
             organizationId: organizationId,
@@ -744,8 +710,12 @@ export const organizationRouter = router({
           request: ctx.c.req.raw,
         });
         return { success: true } as const;
-      } finally {
-        await conn.end();
+      } catch (error) {
+        console.error('setActiveOrganization error', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to set active organization',
+        });
       }
     }),
   listPendingInvitations: privateProcedure

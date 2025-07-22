@@ -7,13 +7,13 @@ import {
   SuperSearchEmail,
   WelcomeEmail,
 } from './react-emails/email-sequences';
-import { createAuthMiddleware, phoneNumber, jwt, bearer, mcp, organization } from 'better-auth/plugins';
-  bearer,
+import {
   createAuthMiddleware,
+  phoneNumber,
   jwt,
+  bearer,
   mcp,
   organization,
-  phoneNumber,
 } from 'better-auth/plugins';
 import { type Account, betterAuth, type BetterAuthOptions } from 'better-auth';
 import { getBrowserTimezone, isValidTimezone } from './timezones';
@@ -206,6 +206,7 @@ export const createAuth = () => {
           },
         },
       }),
+
       mcp({
         loginPage: env.VITE_PUBLIC_APP_URL + '/login',
       }),

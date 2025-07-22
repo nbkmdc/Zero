@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -23,16 +23,15 @@ interface TeamManagerProps {
 interface Team {
   id: string;
   name: string;
-  organizationId: string | null;
-  created_at: Date;
-  updated_at: Date | null;
+  organizationId: string;
+  createdAt: Date;
+  updatedAt?: Date | undefined;
 }
 
-export function TeamManager({ orgId, orgSlug }: TeamManagerProps & { orgSlug: string }) {
+export function TeamManager({ orgId }: TeamManagerProps) {
   const [loading, setLoading] = useState(false);
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const trpc = useTRPC();
-  const setActiveOrgMutation = useMutation(trpc.organization.setActiveOrganization.mutationOptions());
 
   const {
     register,
@@ -56,7 +55,8 @@ export function TeamManager({ orgId, orgSlug }: TeamManagerProps & { orgSlug: st
   const deleteTeamMutation = useMutation(trpc.team.deleteTeam.mutationOptions());
   const addTeamMemberMutation = useMutation(trpc.team.addTeamMember.mutationOptions());
   const removeTeamMemberMutation = useMutation(trpc.team.removeTeamMember.mutationOptions());
-  const listTeamMembersQuery = (teamId: string) => trpc.team.listTeamMembers.queryOptions({ teamId });
+  const listTeamMembersQuery = (teamId: string) =>
+    trpc.team.listTeamMembers.queryOptions({ teamId, organizationId: orgId || '' });
 
   async function onSubmit(values: z.infer<typeof schema>) {
     if (!orgId) return;
@@ -105,36 +105,15 @@ export function TeamManager({ orgId, orgSlug }: TeamManagerProps & { orgSlug: st
   function EditableRow({ team }: { team: Team }) {
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(team.name);
-    const [activeOrgSet, setActiveOrgSet] = useState(false);
-
-    console.log('EditableRow render for team', team.id);
-
-    useEffect(() => {
-      console.log('Ensuring active org for team', team.id);
-      let cancelled = false;
-      async function ensureActiveOrg() {
-        if (!orgId || !orgSlug) return;
-        try {
-          const result = await setActiveOrgMutation.mutateAsync({ organizationId: orgId, organizationSlug: orgSlug });
-          console.log('setActiveOrgMutation result for team', team.id, ':', result);
-          if (!cancelled) setActiveOrgSet(true);
-        } catch (e) {
-          console.error('setActiveOrgMutation error for team', team.id, ':', e);
-          if (!cancelled) setActiveOrgSet(false);
-        }
-      }
-      ensureActiveOrg();
-      return () => { cancelled = true; };
-    }, [orgId, orgSlug, team.id]);
 
     const { data: teamMembersData, refetch: refetchTeamMembers } = useQuery({
       ...listTeamMembersQuery(team.id),
-      enabled: !!team.id && activeOrgSet,
+      enabled: !!team.id && !!orgId,
     }) as any;
 
-    useEffect(() => {
-      console.log('teamMembersData for team', team.id, ':', teamMembersData);
-    }, [teamMembersData, team.id]);
+    // useEffect(() => {
+    //   console.log('teamMembersData for team', team.id, ':', teamMembersData);
+    // }, [teamMembersData, team.id]);
 
     async function save() {
       if (!name.trim() || name === team.name || !orgId) {
@@ -186,7 +165,7 @@ export function TeamManager({ orgId, orgSlug }: TeamManagerProps & { orgSlug: st
     }
 
     function getTeamMembers() {
-      return ((teamMembersData as any)?.members) || [];
+      return (teamMembersData as any)?.members || [];
     }
 
     function getUnassignedMembers() {
@@ -307,7 +286,9 @@ export function TeamManager({ orgId, orgSlug }: TeamManagerProps & { orgSlug: st
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <div className="space-y-2">
-              {(teamsData?.teams ?? []).map((t) => <EditableRow key={t.id} team={t} />)}
+              {(teamsData ?? []).map((t) => (
+                <EditableRow key={t.id} team={t} />
+              ))}
             </div>
           )}
         </CardContent>

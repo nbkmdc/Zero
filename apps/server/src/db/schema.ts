@@ -23,7 +23,6 @@ export const user = createTable('user', {
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
   defaultConnectionId: text('default_connection_id'),
-  activeOrganizationId: text('active_organization_id').references(() => organization.id),
   customPrompt: text('custom_prompt'),
   phoneNumber: text('phone_number').unique(),
   phoneNumberVerified: boolean('phone_number_verified'),
@@ -243,54 +242,51 @@ export const jwks = createTable(
 export const organization = createTable('organization', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  slug: text('slug').notNull().unique(),
+  slug: text('slug').unique(),
   logo: text('logo'),
-  metadata: text('metadata'),
   createdAt: timestamp('created_at').notNull(),
+  metadata: text('metadata'),
 });
 
 export const roleEnum = pgEnum('role', ['owner', 'admin', 'member']);
 export type Role = 'owner' | 'admin' | 'member';
 
-export const member = createTable(
-  'member',
-  {
-    id: text('id').primaryKey(),
-    userId: text('userId')
-      .notNull()
-      .references(() => user.id),
-    organizationId: text('organizationId')
-      .notNull()
-      .references(() => organization.id),
-    teamId: text('teamId').references(() => team.id),
-    role: roleEnum('role').notNull().default('member'),
-    createdAt: timestamp('createdAt').notNull(),
-  },
-  (t) => [unique().on(t.userId, t.organizationId)],
-);
+export const member = createTable('member', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  role: text('role').default('member').notNull(),
+  teamId: text('team_id'),
+  createdAt: timestamp('created_at').notNull(),
+});
 
 export const invitation = createTable('invitation', {
   id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
   email: text('email').notNull(),
-  inviterId: text('inviterId')
+  role: text('role'),
+  teamId: text('team_id'),
+  status: text('status').default('pending').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  inviterId: text('inviter_id')
     .notNull()
-    .references(() => user.id),
-  organizationId: text('organizationId')
-    .notNull()
-    .references(() => organization.id),
-  teamId: text('teamId'),
-  role: roleEnum('role').notNull().default('member'),
-  status: text('status').notNull().default('pending'),
-  expiresAt: timestamp('expiresAt'),
-  createdAt: timestamp('createdAt').defaultNow(),
+    .references(() => user.id, { onDelete: 'cascade' }),
 });
 
 export const team = createTable('team', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  organizationId: text('organizationId').references(() => organization.id),
-  createdAt: timestamp('createdAt').notNull(),
-  updatedAt: timestamp('updatedAt'),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at'),
 });
 
 export const oauthApplication = createTable(
