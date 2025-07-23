@@ -2,11 +2,11 @@ import { getCurrentDateContext, GmailSearchAssistantSystemPrompt } from '../lib/
 import { systemPrompt } from '../services/call-service/system-prompt';
 import { composeEmail } from '../trpc/routes/ai/compose';
 import { getZeroAgent } from '../lib/server-utils';
-import { env } from '../env';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { Tools } from '../types';
 import { createDb } from '../db';
+import { env } from '../env';
 import { Hono } from 'hono';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -20,7 +20,7 @@ aiRouter.post('/do/:action', async (c) => {
   if (env.VOICE_SECRET !== c.req.header('X-Voice-Secret'))
     return c.json({ success: false, error: 'Unauthorized' }, 401);
   if (!c.req.header('X-Caller')) return c.json({ success: false, error: 'Unauthorized' }, 401);
-  const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
+  const { db, conn } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
   const user = await db.query.user.findFirst({
     where: (user, { eq, and }) =>
       and(eq(user.phoneNumber, c.req.header('X-Caller')!), eq(user.phoneNumberVerified, true)),
@@ -99,7 +99,7 @@ aiRouter.post('/call', async (c) => {
   }
 
   console.log('[DEBUG] Connecting to database');
-  const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
+  const { db, conn } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
 
   console.log('[DEBUG] Finding user by phone number:', c.req.header('X-Caller'));
   const user = await db.query.user.findFirst({

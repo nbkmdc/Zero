@@ -21,6 +21,7 @@ import { getZeroDB, verifyToken } from './lib/server-utils';
 import { eq, and, desc, asc, inArray } from 'drizzle-orm';
 import { EWorkflowType, runWorkflow } from './pipelines';
 import { ZeroAgent, ZeroDriver } from './routes/agent';
+import { getContainer } from '@cloudflare/containers';
 import { contextStorage } from 'hono/context-storage';
 import { defaultUserSettings } from './lib/schemas';
 import { createLocalJWKSet, jwtVerify } from 'jose';
@@ -32,15 +33,16 @@ import { agentsMiddleware } from 'hono-agents';
 import { ZeroMCP } from './routes/agent/mcp';
 import { publicRouter } from './routes/auth';
 import { autumnApi } from './routes/autumn';
+import { env } from 'cloudflare:workers';
 import type { HonoContext } from './ctx';
 import { createDb, type DB } from './db';
 import { createAuth } from './lib/auth';
 import { aiRouter } from './routes/ai';
+import { ServerContainer } from '.';
 import { Autumn } from 'autumn-js';
 import { appRouter } from './trpc';
 import { cors } from 'hono/cors';
 import { Effect } from 'effect';
-import { env } from './env';
 import { Hono } from 'hono';
 
 const SENTRY_HOST = 'o4509328786915328.ingest.us.sentry.io';
@@ -500,85 +502,21 @@ class ZeroDB extends DurableObject<Env> {
 
 export default class extends WorkerEntrypoint<typeof env> {
   db: DB | undefined;
-  private api = new Hono<HonoContext>()
-    .use(contextStorage())
-    .use('*', async (c, next) => {
-      const auth = createAuth();
-      c.set('auth', auth);
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
-      c.set('sessionUser', session?.user);
-
-      if (c.req.header('Authorization') && !session?.user) {
-        const token = c.req.header('Authorization')?.split(' ')[1];
-
-        if (token) {
-          const localJwks = await auth.api.getJwks();
-          const jwks = createLocalJWKSet(localJwks);
-
-          const { payload } = await jwtVerify(token, jwks);
-          const userId = payload.sub;
-
-          if (userId) {
-            const db = await getZeroDB(userId);
-            c.set('sessionUser', await db.findUser());
-          }
-        }
-      }
-
-      const autumn = new Autumn({ secretKey: env.AUTUMN_SECRET_KEY });
-      c.set('autumn', autumn);
-
-      await next();
-
-      c.set('sessionUser', undefined);
-      c.set('autumn', undefined as any);
-      c.set('auth', undefined as any);
-    })
-    .route('/ai', aiRouter)
-    .route('/autumn', autumnApi)
-    .route('/public', publicRouter)
-    .on(['GET', 'POST', 'OPTIONS'], '/auth/*', (c) => {
-      return c.var.auth.handler(c.req.raw);
-    })
-    .use(
-      trpcServer({
-        endpoint: '/api/trpc',
-        router: appRouter,
-        createContext: (_, c) => {
-          return { c, sessionUser: c.var['sessionUser'], db: c.var['db'] };
-        },
-        allowMethodOverride: true,
-        onError: (opts) => {
-          console.error('Error in TRPC handler:', opts.error);
-        },
-      }),
-    )
-    .onError(async (err, c) => {
-      if (err instanceof Response) return err;
-      console.error('Error in Hono handler:', err);
-      return c.json(
-        {
-          error: 'Internal Server Error',
-          message: err instanceof Error ? err.message : 'Unknown error',
-        },
-        500,
-      );
-    });
 
   private createInternalRoutes() {
     return new Hono<HonoContext>()
       .use('*', async (c, next) => {
-        const authHeader = c.req.header('Authorization');
-        const expectedSecret = env.CLOUDFLARE_INTERNAL_SECRET || 'internal-secret';
+        // const authHeader = c.req.header('Authorization');
+        // const expectedSecret = env.CLOUDFLARE_INTERNAL_SECRET || 'internal-secret';
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          return c.json({ success: false, error: 'Missing authorization' }, 401);
-        }
+        // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        //   return c.json({ success: false, error: 'Missing authorization' }, 401);
+        // }
 
-        const token = authHeader.split(' ')[1];
-        if (token !== expectedSecret) {
-          return c.json({ success: false, error: 'Invalid authorization' }, 401);
-        }
+        // const token = authHeader.split(' ')[1];
+        // if (token !== expectedSecret) {
+        //   return c.json({ success: false, error: 'Invalid authorization' }, 401);
+        // }
 
         await next();
       })
@@ -847,7 +785,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       },
       { replaceRequest: false },
     )
-    .route('/api', this.api)
+    // .route('/api', this.api)
     .route('/internal', this.createInternalRoutes())
     .use(
       '*',
@@ -926,13 +864,12 @@ export default class extends WorkerEntrypoint<typeof env> {
     });
 
   async fetch(request: Request): Promise<Response> {
-    if (request.url.includes('/zero/durable-mailbox')) {
-      const res = await routePartykitRequest(request, env as unknown as Record<string, unknown>, {
-        prefix: 'zero',
-      });
-      if (res) return res;
+    const pathname = new URL(request.url).pathname;
+    if (pathname.startsWith('/api')) {
+      const containerInstance = getContainer(env.SERVER_CONTAINER, pathname);
+      return containerInstance.fetch(request);
     }
-    return this.app.fetch(request, this.env, this.ctx);
+    return this.app.fetch(request, env);
   }
 
   async queue(batch: MessageBatch<any>) {
@@ -1080,4 +1017,4 @@ export default class extends WorkerEntrypoint<typeof env> {
   }
 }
 
-export { ZeroAgent, ZeroMCP, ZeroDB, ZeroDriver };
+export { ZeroAgent, ZeroMCP, ZeroDB, ZeroDriver, ServerContainer };

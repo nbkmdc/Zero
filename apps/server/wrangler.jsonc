@@ -43,6 +43,10 @@
             "name": "ZERO_DRIVER",
             "class_name": "ZeroDriver",
           },
+          {
+            "name": "SERVER_CONTAINER",
+            "class_name": "ServerContainer",
+          },
         ],
       },
       "queues": {
@@ -72,7 +76,7 @@
         },
         {
           "tag": "v2",
-          "new_sqlite_classes": ["ZeroAgent", "ZeroMCP"],
+          "new_sqlite_classes": ["ZeroAgent", "ZeroMCP", "ServerContainer"],
         },
         {
           "tag": "v3",
@@ -82,12 +86,15 @@
           "tag": "v4",
           "deleted_classes": ["DurableMailbox"],
         },
+      ],
+      "containers": [
         {
-          "tag": "v5",
-          "new_sqlite_classes": ["ZeroDriver"],
+          "name": "server-container",
+          "class_name": "ServerContainer",
+          "image": "./Dockerfile",
+          "max_instances": 3,
         },
       ],
-
       "observability": {
         "enabled": true,
       },

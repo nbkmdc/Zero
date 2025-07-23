@@ -1,8 +1,9 @@
 import { BaseSubscriptionFactory, type SubscriptionData } from './base-subscription.factory';
 import { c, getNotificationsUrl } from '../../lib/utils';
 import jwt from '@tsndr/cloudflare-worker-jwt';
-import { env } from '../../env';
+import { kvNamespaces } from '../../cf-proxy';
 import { EProviders } from '../../types';
+import { env } from '../../env';
 
 interface GoogleServiceAccount {
   type: string;
@@ -274,7 +275,7 @@ class GoogleSubscriptionFactory extends BaseSubscriptionFactory {
         );
         await this.setupGmailWatch(connectionData, pubSubName);
 
-        await env.gmail_sub_age.put(
+        await kvNamespaces.gmail_sub_age.put(
           `${connectionId}__${EProviders.google}`,
           new Date().toISOString(),
         );
@@ -317,13 +318,15 @@ class GoogleSubscriptionFactory extends BaseSubscriptionFactory {
       return c.json({ error: 'connectionId is required' }, { status: 400 });
     }
 
-    const existingState = await env.subscribed_accounts.get(`${connectionId}__${providerId}`);
+    const existingState = await kvNamespaces.subscribed_accounts.get(
+      `${connectionId}__${providerId}`,
+    );
 
     if (!existingState || existingState === 'pending') {
       return c.json({ message: 'not subscribed' }, { status: 200 });
     }
 
-    await env.subscribed_accounts.delete(`${connectionId}__${providerId}`);
+    await kvNamespaces.subscribed_accounts.delete(`${connectionId}__${providerId}`);
     return c.json({});
   }
 

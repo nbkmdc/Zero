@@ -21,10 +21,10 @@ import { APIError } from 'better-auth/api';
 import { getZeroDB } from './server-utils';
 import { type EProviders } from '../types';
 import type { HonoContext } from '../ctx';
-import { env } from '../env';
 import { createDriver } from './driver';
 import { createDb } from '../db';
 import { Effect } from 'effect';
+import { env } from '../env';
 import { Dub } from 'dub';
 
 const scheduleCampaign = (userInfo: { address: string; name: string }) =>
@@ -314,7 +314,7 @@ export const createAuth = () => {
 
 const createAuthConfig = () => {
   const cache = redis();
-  const { db } = createDb(env.HYPERDRIVE.connectionString);
+  const { db } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
   return {
     database: drizzleAdapter(db, { provider: 'pg' }),
     secondaryStorage: {

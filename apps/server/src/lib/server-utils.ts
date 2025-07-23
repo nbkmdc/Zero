@@ -1,24 +1,24 @@
 import { getContext } from 'hono/context-storage';
+import { durableObjects } from '../cf-proxy';
 import { connection } from '../db/schema';
 import type { HonoContext } from '../ctx';
-import { env } from '../env';
 import { createDriver } from './driver';
 
 export const getZeroDB = async (userId: string) => {
-  const stub = env.ZERO_DB.get(env.ZERO_DB.idFromName(userId));
+  const stub = durableObjects.ZERO_DB.get(durableObjects.ZERO_DB.idFromName(userId));
   const rpcTarget = await stub.setMetaData(userId);
   return rpcTarget;
 };
 
 export const getZeroAgent = async (connectionId: string) => {
-  const stub = env.ZERO_DRIVER.get(env.ZERO_DRIVER.idFromName(connectionId));
+  const stub = durableObjects.ZERO_DRIVER.get(durableObjects.ZERO_DRIVER.idFromName(connectionId));
   const rpcTarget = await stub.setMetaData(connectionId);
   await rpcTarget.setupAuth();
   return rpcTarget;
 };
 
 export const getZeroSocketAgent = async (connectionId: string) => {
-  const stub = env.ZERO_AGENT.get(env.ZERO_AGENT.idFromName(connectionId));
+  const stub = durableObjects.ZERO_AGENT.get(durableObjects.ZERO_AGENT.idFromName(connectionId));
   return stub;
 };
 

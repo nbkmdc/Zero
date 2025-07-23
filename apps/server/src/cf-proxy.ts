@@ -1,4 +1,6 @@
-import { env } from '../env';
+import { ZeroAgent, ZeroMCP, type DbRpcDO } from './main';
+import { DriverRpcDO } from './routes/agent/rpc';
+import { env } from './env';
 
 interface ProxyResponse<T = any> {
   success: boolean;
@@ -38,7 +40,12 @@ class CloudflareProxy {
     return result.data as T;
   }
 
-  async durableObjectCall(objectType: string, objectId: string, method: string, args: any[] = []) {
+  async durableObjectCall<T>(
+    objectType: string,
+    objectId: string,
+    method: string,
+    args: any[] = [],
+  ): Promise<T> {
     return this.makeRequest(`/durable-objects/${objectType}/${objectId}/${method}`, {
       method: 'POST',
       body: JSON.stringify({ args }),
@@ -104,28 +111,32 @@ export const durableObjects = {
   ZERO_DB: {
     get: (id: string) => ({
       setMetaData: (userId: string) =>
-        cloudflareProxy.durableObjectCall('ZERO_DB', id, 'setMetaData', [userId]),
+        cloudflareProxy.durableObjectCall<DbRpcDO>('ZERO_DB', id, 'setMetaData', [userId]),
     }),
     idFromName: (name: string) => name,
   },
   ZERO_AGENT: {
     get: (id: string) => ({
       setMetaData: (connectionId: string) =>
-        cloudflareProxy.durableObjectCall('ZERO_AGENT', id, 'setMetaData', [connectionId]),
+        cloudflareProxy.durableObjectCall<ZeroAgent>('ZERO_AGENT', id, 'setMetaData', [
+          connectionId,
+        ]),
     }),
     idFromName: (name: string) => name,
   },
   ZERO_MCP: {
     get: (id: string) => ({
       setMetaData: (connectionId: string) =>
-        cloudflareProxy.durableObjectCall('ZERO_MCP', id, 'setMetaData', [connectionId]),
+        cloudflareProxy.durableObjectCall<ZeroMCP>('ZERO_MCP', id, 'setMetaData', [connectionId]),
     }),
     idFromName: (name: string) => name,
   },
   ZERO_DRIVER: {
     get: (id: string) => ({
       setMetaData: (connectionId: string) =>
-        cloudflareProxy.durableObjectCall('ZERO_DRIVER', id, 'setMetaData', [connectionId]),
+        cloudflareProxy.durableObjectCall<DriverRpcDO>('ZERO_DRIVER', id, 'setMetaData', [
+          connectionId,
+        ]),
       setupAuth: () => cloudflareProxy.durableObjectCall('ZERO_DRIVER', id, 'setupAuth', []),
     }),
     idFromName: (name: string) => name,

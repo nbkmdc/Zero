@@ -26,12 +26,13 @@ import { defaultLabels, EPrompts, EProviders, type ParsedMessage, type Sender } 
 import { getZeroAgent } from './lib/server-utils';
 import { type gmail_v1 } from '@googleapis/gmail';
 import { getPromptName } from './pipelines';
-import { env } from './env';
+import { kvNamespaces } from './cf-proxy';
 import { connection } from './db/schema';
 import { Effect, Console } from 'effect';
 import * as cheerio from 'cheerio';
 import { eq } from 'drizzle-orm';
 import { createDb } from './db';
+import { env } from './env';
 
 const showLogs = true;
 
@@ -120,7 +121,7 @@ export const runMainWorkflow = (
     }
 
     const previousHistoryId = yield* Effect.tryPromise({
-      try: () => env.gmail_history_id.get(connectionId),
+      try: () => kvNamespaces.gmail_history_id.get(connectionId),
       catch: () => ({ _tag: 'WorkflowCreationFailed' as const, error: 'Failed to get history ID' }),
     }).pipe(Effect.orElse(() => Effect.succeed(null)));
 
@@ -180,7 +181,7 @@ export const runZeroWorkflow = (
 
     const historyProcessingKey = `history_${connectionId}__${historyId}`;
     const isProcessing = yield* Effect.tryPromise({
-      try: () => env.gmail_processing_threads.get(historyProcessingKey),
+      try: () => kvNamespaces.gmail_processing_threads.get(historyProcessingKey),
       catch: (error) => ({ _tag: 'WorkflowCreationFailed' as const, error }),
     });
 
@@ -199,12 +200,14 @@ export const runZeroWorkflow = (
 
     yield* Effect.tryPromise({
       try: () =>
-        env.gmail_processing_threads.put(historyProcessingKey, 'true', { expirationTtl: 3600 }),
+        kvNamespaces.gmail_processing_threads.put(historyProcessingKey, 'true', {
+          expirationTtl: 3600,
+        }),
       catch: (error) => ({ _tag: 'WorkflowCreationFailed' as const, error }),
     });
     yield* Console.log('[ZERO_WORKFLOW] Set processing flag for history:', historyProcessingKey);
 
-    const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
+    const { db, conn } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
 
     const foundConnection = yield* Effect.tryPromise({
       try: async () => {
@@ -259,7 +262,10 @@ export const runZeroWorkflow = (
       yield* Effect.tryPromise({
         try: () => {
           console.log('[ZERO_WORKFLOW] Updating next history ID:', nextHistoryId);
-          return env.gmail_history_id.put(connectionId.toString(), nextHistoryId.toString());
+          return kvNamespaces.gmail_history_id.put(
+            connectionId.toString(),
+            nextHistoryId.toString(),
+          );
         },
         catch: (error) => ({ _tag: 'WorkflowCreationFailed' as const, error }),
       });
@@ -310,16 +316,20 @@ export const runZeroWorkflow = (
                     '[ZERO_WORKFLOW] Setting processing flag for thread:',
                     params.threadId,
                   );
-                  return env.gmail_processing_threads.put(params.threadId.toString(), 'true', {
-                    expirationTtl: 1800,
-                  });
+                  return kvNamespaces.gmail_processing_threads.put(
+                    params.threadId.toString(),
+                    'true',
+                    {
+                      expirationTtl: 1800,
+                    },
+                  );
                 },
                 catch: (error) => ({ _tag: 'WorkflowCreationFailed' as const, error }),
               });
 
               // Check if thread is already processing
               const isProcessing = yield* Effect.tryPromise({
-                try: () => env.gmail_processing_threads.get(params.threadId.toString()),
+                try: () => kvNamespaces.gmail_processing_threads.get(params.threadId.toString()),
                 catch: (error) => ({ _tag: 'WorkflowCreationFailed' as const, error }),
               });
 
@@ -375,7 +385,7 @@ export const runZeroWorkflow = (
             '[ZERO_WORKFLOW] Clearing processing flag for history after error:',
             `history_${params.connectionId}__${params.historyId}`,
           );
-          return env.gmail_processing_threads.delete(
+          return kvNamespaces.gmail_processing_threads.delete(
             `history_${params.connectionId}__${params.historyId}`,
           );
         },
@@ -416,7 +426,7 @@ export const runThreadWorkflow = (
 
     if (providerId === EProviders.google) {
       yield* Console.log('[THREAD_WORKFLOW] Processing Google provider workflow');
-      const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
+      const { db, conn } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
 
       const foundConnection = yield* Effect.tryPromise({
         try: async () => {
@@ -743,7 +753,9 @@ export const runThreadWorkflow = (
           try: async () => {
             console.log('[THREAD_WORKFLOW] Getting user labels for connection:', connectionId);
             let userLabels: { name: string; usecase: string }[] = [];
-            const connectionLabels = await env.connection_labels.get(connectionId.toString());
+            const connectionLabels = await kvNamespaces.connection_labels.get(
+              connectionId.toString(),
+            );
             if (connectionLabels) {
               try {
                 console.log('[THREAD_WORKFLOW] Parsing existing connection labels');
@@ -758,7 +770,7 @@ export const runThreadWorkflow = (
                 }
               } catch {
                 console.log('[THREAD_WORKFLOW] Failed to parse labels, using defaults');
-                await env.connection_labels.put(
+                await kvNamespaces.connection_labels.put(
                   connectionId.toString(),
                   JSON.stringify(defaultLabels),
                 );
@@ -766,7 +778,7 @@ export const runThreadWorkflow = (
               }
             } else {
               console.log('[THREAD_WORKFLOW] No labels found, using defaults');
-              await env.connection_labels.put(
+              await kvNamespaces.connection_labels.put(
                 connectionId.toString(),
                 JSON.stringify(defaultLabels),
               );
@@ -895,7 +907,7 @@ export const runThreadWorkflow = (
       yield* Effect.tryPromise({
         try: () => {
           console.log('[THREAD_WORKFLOW] Clearing processing flag for thread:', threadId);
-          return env.gmail_processing_threads.delete(threadId.toString());
+          return kvNamespaces.gmail_processing_threads.delete(threadId.toString());
         },
         catch: (error) => ({ _tag: 'DatabaseError' as const, error }),
       }).pipe(Effect.orElse(() => Effect.succeed(null)));
@@ -927,7 +939,7 @@ export const runThreadWorkflow = (
             '[THREAD_WORKFLOW] Clearing processing flag for thread after error:',
             params.threadId,
           );
-          return env.gmail_processing_threads.delete(params.threadId.toString());
+          return kvNamespaces.gmail_processing_threads.delete(params.threadId.toString());
         },
         catch: () => ({
           _tag: 'DatabaseError' as const,
@@ -1020,9 +1032,9 @@ export const getPrompt = async (promptName: string, fallback: string) => {
       return fallback;
     }
 
-    const existingPrompt = await env.prompts_storage.get(promptName);
+    const existingPrompt = await kvNamespaces.prompts_storage.get(promptName);
     if (!existingPrompt) {
-      await env.prompts_storage.put(promptName, fallback);
+      await kvNamespaces.prompts_storage.put(promptName, fallback);
       return fallback;
     }
     return existingPrompt;

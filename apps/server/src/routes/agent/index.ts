@@ -48,12 +48,12 @@ import { connection } from '../../db/schema';
 import type { WSMessage } from 'partyserver';
 import { tools as authTools } from './tools';
 import { processToolCalls } from './utils';
-import { env } from '../../env';
 import type { Connection } from 'agents';
 import { openai } from '@ai-sdk/openai';
 import { createDb } from '../../db';
 import { DriverRpcDO } from './rpc';
 import { eq } from 'drizzle-orm';
+import { env } from '../../env';
 import { Effect } from 'effect';
 
 const decoder = new TextDecoder();
@@ -161,7 +161,7 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
   public async setupAuth() {
     if (this.name === 'general') return;
     if (!this.driver) {
-      const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
+      const { db, conn } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
       const _connection = await db.query.connection.findFirst({
         where: eq(connection.id, this.name),
       });
