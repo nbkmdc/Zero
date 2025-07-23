@@ -14,20 +14,16 @@ const orgRouter = new Hono<HonoContext>();
 orgRouter.post('/verify-domain', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
   try {
     const { domain, verificationToken: providedToken } = await c.req.json();
     if (!domain) return c.json({ error: 'Domain required' }, 400);
-  
     // Use provided token or generate a new one
     const verificationToken = providedToken || nanoid();
-  
     // Check DNS TXT record
     try {
       const txtRecords = await dns.resolveTxt(domain);
       const expected = `zero-verification=${verificationToken}`;
       const found = txtRecords.some((arr) => arr.join('').trim() === expected);
-  
       if (found) {
         return c.json({
           success: true,
@@ -62,7 +58,7 @@ orgRouter.post('/verify-domain', async (c) => {
 orgRouter.get('/:id/domains', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const domains = await db
@@ -86,15 +82,15 @@ orgRouter.get('/:id/domains', async (c) => {
 orgRouter.post('/:id/domains', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { domain } = await c.req.json();
     if (!domain) return c.json({ error: 'Domain required' }, 400);
     const sessionUser = c.get('sessionUser');
-  if (!sessionUser) return c.json({ error: 'Unauthorized' }, 401);
-  const db = getZeroDB(sessionUser.id);
-  const verificationToken = nanoid();
+    if (!sessionUser) return c.json({ error: 'Unauthorized' }, 401);
+    const db = await getZeroDB(sessionUser.id);
+    const verificationToken = nanoid();
     await db.insertOrganizationDomain({
       id: nanoid(),
       organizationId: orgId,
@@ -113,7 +109,7 @@ orgRouter.post('/:id/domains', async (c) => {
 orgRouter.delete('/:id/domains', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { domain } = await c.req.json();
@@ -130,7 +126,7 @@ orgRouter.delete('/:id/domains', async (c) => {
 orgRouter.post('/:id/domains/verify', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { domain } = await c.req.json();
@@ -171,7 +167,7 @@ orgRouter.post('/:id/invite', async (c) => {
   // Get the inviter's user ID from the session
   const inviterId = c.get('sessionUser')?.id;
   if (!inviterId) return c.json({ error: 'Unauthorized' }, 401);
-  const db = getZeroDB(inviterId);
+  const db = await getZeroDB(inviterId);
   if (!email) return c.json({ error: 'Email required' }, 400);
 
   try {
@@ -187,7 +183,7 @@ orgRouter.post('/:id/invite', async (c) => {
 orgRouter.get('/', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgs = await db.select().from(organization);
     return c.json({ organizations: orgs });
@@ -199,7 +195,7 @@ orgRouter.get('/', async (c) => {
 orgRouter.post('/', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const { name, slug, logo, metadata } = await c.req.json();
     if (!name) return c.json({ error: 'Name required' }, 400);
@@ -223,7 +219,7 @@ orgRouter.post('/', async (c) => {
 orgRouter.get('/:id', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const [org] = await db.select().from(organization).where(eq(organization.id, orgId));
@@ -237,7 +233,7 @@ orgRouter.get('/:id', async (c) => {
 orgRouter.patch('/:id', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { name, slug, logo, metadata } = await c.req.json();
@@ -255,7 +251,7 @@ orgRouter.patch('/:id', async (c) => {
 orgRouter.delete('/:id', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const sessionUser = c.get('sessionUser');
@@ -294,7 +290,7 @@ orgRouter.post('/:id/leave', async (c) => {
 orgRouter.get('/:id/members', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const rows = await db
@@ -329,7 +325,7 @@ orgRouter.get('/:id/members', async (c) => {
 orgRouter.post('/:id/members', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { userId, role = 'member', teamId } = await c.req.json();
@@ -379,7 +375,7 @@ orgRouter.post('/:id/members', async (c) => {
 orgRouter.patch('/:id/members/:memberId', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const memberId = c.req.param('memberId');
@@ -422,7 +418,7 @@ orgRouter.patch('/:id/members/:memberId', async (c) => {
 orgRouter.delete('/:id/members/:memberId', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const memberId = c.req.param('memberId');
@@ -479,7 +475,7 @@ async function isOwner(db: any, orgId: string, userId: string) {
 orgRouter.get('/:id/teams', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const teams = await db.select().from(team).where(eq(team.organizationId, orgId));
@@ -493,7 +489,7 @@ orgRouter.get('/:id/teams', async (c) => {
 orgRouter.post('/:id/teams', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { name } = await c.req.json();
@@ -516,7 +512,7 @@ orgRouter.post('/:id/teams', async (c) => {
 orgRouter.patch('/:id/teams/:teamId', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const teamId = c.req.param('teamId');
@@ -535,7 +531,7 @@ orgRouter.patch('/:id/teams/:teamId', async (c) => {
 orgRouter.delete('/:id/teams/:teamId', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const teamId = c.req.param('teamId');
@@ -550,7 +546,7 @@ orgRouter.delete('/:id/teams/:teamId', async (c) => {
 orgRouter.get('/:id/settings', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const [org] = await db.select().from(organization).where(eq(organization.id, orgId));
@@ -564,7 +560,7 @@ orgRouter.get('/:id/settings', async (c) => {
 orgRouter.patch('/:id/settings', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { settings } = await c.req.json(); // expect JSON serializable object
@@ -589,7 +585,7 @@ orgRouter.post('/:id/emails/:emailId/messages/bulk', async (c) => {
 orgRouter.get('/:id/emails', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const emails = await db
@@ -616,7 +612,7 @@ orgRouter.get('/:id/emails', async (c) => {
 orgRouter.post('/:id/emails', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const { connectionId, alias } = await c.req.json();
@@ -640,7 +636,7 @@ orgRouter.post('/:id/emails', async (c) => {
 orgRouter.patch('/:id/emails/:emailId', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const emailId = c.req.param('emailId');
@@ -658,7 +654,7 @@ orgRouter.patch('/:id/emails/:emailId', async (c) => {
 orgRouter.delete('/:id/emails/:emailId', async (c) => {
   const env = c.env;
   const { db, conn } = createDb(env.HYPERDRIVE.connectionString);
-  
+
   try {
     const orgId = c.req.param('id');
     const emailId = c.req.param('emailId');
@@ -686,6 +682,6 @@ orgRouter.patch('/:id/emails/:emailId/messages/:msgId', async (c) => {
 
 orgRouter.delete('/:id/emails/:emailId/messages/:msgId', async (c) => {
   return c.json({ success: true });
-}); 
+});
 
 export { orgRouter }; 

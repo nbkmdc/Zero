@@ -102,7 +102,7 @@ export const teamRouter = router({
       try {
         const { teamId } = input;
         const { sessionUser } = ctx;
-        const db = getZeroDB(sessionUser.id);
+        const db = await getZeroDB(sessionUser.id);
         const team = await db.findTeam(teamId);
         return {
           team: team
