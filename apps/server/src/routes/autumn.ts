@@ -51,9 +51,9 @@ export const autumnApi = new Hono<AutumnContext>()
       c.set('orgData', null);
       return await next();
     }
-    const db = getZeroDB(sessionUser.id);
+    const db = await getZeroDB(sessionUser.id);
     const org = await db.findFirstOrganization();
-    if (org) {
+    if (org && (org.role === 'owner' || org.role === 'admin' || org.role === 'member')) {
       c.set('orgData', { organizationId: org.id, role: org.role });
     } else {
       c.set('orgData', null);
