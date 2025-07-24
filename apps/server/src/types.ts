@@ -4,6 +4,7 @@ import { z } from 'zod';
 export enum EProviders {
   'google' = 'google',
   'microsoft' = 'microsoft',
+  'ses' = 'ses',
 }
 
 export interface ISubscribeBatch {

@@ -297,3 +297,44 @@ export const oauthConsent = createTable(
     index('oauth_consent_given_idx').on(t.consentGiven),
   ],
 );
+
+export const domain = createTable(
+  'domain',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    domain: text('domain').notNull().unique(),
+    verified: boolean('verified').notNull().default(false),
+    verificationToken: text('verification_token'),
+    sesIdentityArn: text('ses_identity_arn'),
+    dkimTokens: jsonb('dkim_tokens').$type<string[]>(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('domain_user_id_idx').on(t.userId),
+    index('domain_verified_idx').on(t.verified),
+  ],
+);
+
+export const domainAccount = createTable(
+  'domain_account',
+  {
+    id: text('id').primaryKey(),
+    domainId: text('domain_id')
+      .notNull()
+      .references(() => domain.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    name: text('name'),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    unique().on(t.domainId, t.email),
+    index('domain_account_domain_id_idx').on(t.domainId),
+    index('domain_account_active_idx').on(t.active),
+  ],
+);

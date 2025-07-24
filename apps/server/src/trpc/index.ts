@@ -12,6 +12,7 @@ import { brainRouter } from './routes/brain';
 import { userRouter } from './routes/user';
 import { mailRouter } from './routes/mail';
 import { bimiRouter } from './routes/bimi';
+import { domainsRouter } from './routes/domains';
 import type { HonoContext } from '../ctx';
 import { aiRouter } from './routes/ai';
 import { router } from './trpc';
@@ -23,6 +24,7 @@ export const appRouter = router({
   categories: categoriesRouter,
   connections: connectionsRouter,
   cookiePreferences: cookiePreferencesRouter,
+  domains: domainsRouter,
   drafts: draftsRouter,
   labels: labelsRouter,
   mail: mailRouter,
