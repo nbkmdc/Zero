@@ -25,4 +25,4 @@ onlyBuiltDependencies:
   - unrs-resolver
   - workerd
 patchedDependencies:
-  novel: patches/novel.patch
+  novel@1.0.2: patches/novel@1.0.2.patch
