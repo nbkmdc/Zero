@@ -67,30 +67,6 @@ export default function IntegrationsPage() {
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Integrations</h1>
       
-      {/* Debug Information */}
-      <div className="border border-yellow-500 rounded-lg p-4 bg-yellow-50 text-black dark:text-black">
-        <h3 className="font-semibold text-yellow-800 mb-2">🐛 Debug Information</h3>
-        <div className="text-sm space-y-1">
-          <p><strong>Total Google connections:</strong> {googleConnections.length}</p>
-          <p><strong>Active/Default connection ID:</strong> {defaultConnection?.id || 'None'}</p>
-          <p><strong>Active connection email:</strong> {defaultConnection?.email || 'None'}</p>
-          
-          {googleConnections.length > 0 && (
-            <div className="mt-2">
-              <p><strong>All Google connections:</strong></p>
-              {googleConnections.map((conn: any, index: number) => (
-                <div key={conn.id} className="ml-4 p-2 border rounded mt-1 bg-white">
-                  <p>#{index + 1}: {conn.email} (ID: {conn.id})</p>
-                  <p>Has calendar: {conn.hasCalendar ? '✅' : '❌'}</p>
-                  <p>Scope: {conn.scope}</p>
-                  <p>Is active: {conn.id === defaultConnection?.id ? '✅ ACTIVE' : '❌'}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="border rounded-lg p-6 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-medium">Google Calendar</h2>
@@ -134,19 +110,6 @@ export default function IntegrationsPage() {
           )}
         </div>
       </div>
-      <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto text-xs">
-        {JSON.stringify({
-          connections: data?.connections,
-          googleConn,
-          hasCalendar,
-          connected: isConnected,
-          upcomingData: upcomingData ?? null,
-          loadingUpcoming,
-          upcomingError: upcomingError ?? null,
-          defaultConnection,
-          googleConnections,
-        }, null, 2)}
-      </pre>
     </div>
   );
 } 

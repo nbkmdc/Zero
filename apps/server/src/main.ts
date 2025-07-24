@@ -711,12 +711,10 @@ export default class extends WorkerEntrypoint<typeof env> {
         const body = await c.req.json<{ historyId: string }>();
         const subHeader = c.req.header('x-goog-pubsub-subscription-name');
         if (!subHeader) {
-          console.log('[GOOGLE] no subscription header', body);
           return c.json({}, { status: 200 });
         }
         const isValid = await verifyToken(c.req.header('Authorization')!.split(' ')[1]);
         if (!isValid) {
-          console.log('[GOOGLE] invalid request', body);
           return c.json({}, { status: 200 });
         }
         try {
