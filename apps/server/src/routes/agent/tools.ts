@@ -2,10 +2,10 @@ import { composeEmail } from '../../trpc/routes/ai/compose';
 import { perplexity } from '@ai-sdk/perplexity';
 import { generateText, tool } from 'ai';
 
-import { getZeroAgent } from '../../lib/server-utils';
+import { getZeroDriver } from '../../lib/server-utils';
 import { colors } from '../../lib/prompts';
-import { env } from '../../env';
 import { Tools } from '../../types';
+import { env } from '../../env';
 import { z } from 'zod';
 
 type ModelTypes = 'summarize' | 'general' | 'chat' | 'vectorize';
@@ -179,7 +179,7 @@ const markAsRead = (connectionId: string) =>
       threadIds: z.array(z.string()).describe('The IDs of the threads to mark as read'),
     }),
     execute: async ({ threadIds }) => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       await driver.markAsRead(threadIds);
       return { threadIds, success: true };
     },
@@ -192,7 +192,7 @@ const markAsUnread = (connectionId: string) =>
       threadIds: z.array(z.string()).describe('The IDs of the threads to mark as unread'),
     }),
     execute: async ({ threadIds }) => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       await driver.markAsUnread(threadIds);
       return { threadIds, success: true };
     },
@@ -209,7 +209,7 @@ const modifyLabels = (connectionId: string) =>
       }),
     }),
     execute: async ({ threadIds, options }) => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       await driver.modifyLabels(threadIds, options.addLabels, options.removeLabels);
       return { threadIds, options, success: true };
     },
@@ -220,7 +220,7 @@ const getUserLabels = (connectionId: string) =>
     description: 'Get all user labels',
     parameters: z.object({}),
     execute: async () => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       return await driver.getUserLabels();
     },
   });
@@ -259,7 +259,7 @@ const sendEmail = (connectionId: string) =>
     }),
     execute: async (data) => {
       try {
-        const driver = await getZeroAgent(connectionId);
+        const driver = await getZeroDriver(connectionId);
         const { draftId, ...mail } = data;
 
         if (draftId) {
@@ -305,7 +305,7 @@ const createLabel = (connectionId: string) =>
         }),
     }),
     execute: async ({ name, backgroundColor, textColor }) => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       await driver.createLabel({ name, color: { backgroundColor, textColor } });
       return { name, backgroundColor, textColor, success: true };
     },
@@ -318,7 +318,7 @@ const bulkDelete = (connectionId: string) =>
       threadIds: z.array(z.string()).describe('Array of email IDs to move to trash'),
     }),
     execute: async ({ threadIds }) => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       await driver.modifyLabels(threadIds, ['TRASH'], []);
       return { threadIds, success: true };
     },
@@ -331,7 +331,7 @@ const bulkArchive = (connectionId: string) =>
       threadIds: z.array(z.string()).describe('Array of email IDs to move to archive'),
     }),
     execute: async ({ threadIds }) => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       await driver.modifyLabels(threadIds, [], ['INBOX']);
       return { threadIds, success: true };
     },
@@ -344,7 +344,7 @@ const deleteLabel = (connectionId: string) =>
       id: z.string().describe('The ID of the label to delete'),
     }),
     execute: async ({ id }) => {
-      const driver = await getZeroAgent(connectionId);
+      const driver = await getZeroDriver(connectionId);
       await driver.deleteLabel(id);
       return { id, success: true };
     },

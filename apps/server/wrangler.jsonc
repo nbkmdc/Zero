@@ -36,10 +36,6 @@
             "class_name": "ZeroMCP",
           },
           {
-            "name": "ZERO_DB",
-            "class_name": "ZeroDB",
-          },
-          {
             "name": "ZERO_DRIVER",
             "class_name": "ZeroDriver",
           },
@@ -72,19 +68,7 @@
       "migrations": [
         {
           "tag": "v1",
-          "new_classes": ["DurableMailbox"],
-        },
-        {
-          "tag": "v2",
-          "new_sqlite_classes": ["ZeroAgent", "ZeroMCP", "ServerContainer"],
-        },
-        {
-          "tag": "v3",
-          "new_classes": ["ZeroDB"],
-        },
-        {
-          "tag": "v4",
-          "deleted_classes": ["DurableMailbox"],
+          "new_sqlite_classes": ["ZeroAgent", "ZeroMCP", "ServerContainer", "ZeroDriver"],
         },
       ],
       "containers": [
@@ -93,6 +77,7 @@
           "class_name": "ServerContainer",
           "image": "./Dockerfile",
           "max_instances": 3,
+          "instance_type": "standard",
         },
       ],
       "observability": {
@@ -255,7 +240,7 @@
         {
           "binding": "HYPERDRIVE",
           "id": "57834ddb6716440496c8836f6d99bc9a",
-          "localConnectionString": "postgresql://postgres:postgres@localhost:5432/zerodotemail",
+          "localConnectionString": "postgresql://postgres:postgres@host.docker.internal:5432/zerodotemail",
         },
       ],
       "vars": {
@@ -331,7 +316,7 @@
         {
           "binding": "HYPERDRIVE",
           "id": "b1be316b45fb439a9e54b74ecc20aa21",
-          "localConnectionString": "postgresql://postgres:postgres@localhost:5432/zerodotemail",
+          "localConnectionString": "postgresql://postgres:postgres@host.docker.internal:5432/zerodotemail",
         },
       ],
       "durable_objects": {

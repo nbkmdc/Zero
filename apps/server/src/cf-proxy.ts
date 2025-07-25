@@ -1,43 +1,55 @@
-import { ZeroAgent, ZeroMCP, type DbRpcDO } from './main';
-import { DriverRpcDO } from './routes/agent/rpc';
+// import { DriverRpcDO } from './routes/agent/rpc';
+import type { ZeroAgent, ZeroDriver, ZeroMCP } from './main';
+import A, { type AxiosInstance } from 'axios';
 import { env } from './env';
-
-interface ProxyResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
 
 class CloudflareProxy {
   private baseUrl: string;
   private secret: string;
+  private instance: AxiosInstance;
 
   constructor() {
     this.baseUrl = env.CLOUDFLARE_WORKER_URL;
     this.secret = env.CLOUDFLARE_INTERNAL_SECRET;
+    this.instance = A.create({
+      baseURL: this.baseUrl,
+      headers: {
+        Authorization: `Bearer ${this.secret}`,
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}/internal${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${this.secret}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Proxy request failed: ${response.status} ${response.statusText}`);
+    let response;
+    if (options.method === 'POST') {
+      response = this.instance.post(url, options.body, {
+        headers: {
+          Authorization: `Bearer ${this.secret}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+    } else {
+      response = this.instance.get(url, {
+        headers: {
+          Authorization: `Bearer ${this.secret}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+    }
+    try {
+      response = await response;
+    } catch (error: any) {
+      throw new Error(`Proxy request failed: ${error.message}`);
+    }
+    if (!response) {
+      throw new Error(response || 'Proxy request failed');
     }
 
-    const result: ProxyResponse<T> = await response.json();
-    if (!result.success) {
-      throw new Error(result.error || 'Proxy request failed');
-    }
-
-    return result.data as T;
+    return response.data as T;
   }
 
   async durableObjectCall<T>(
@@ -106,40 +118,38 @@ class CloudflareProxy {
 }
 
 export const cloudflareProxy = new CloudflareProxy();
+// Helper function to create dynamic method wrappers using Proxy
+function createMethodWrapper<T extends object>(objectType: string, id: string): T {
+  return new Proxy({} as T, {
+    get(target, prop) {
+      console.log('target!', target);
+      console.log('prop!', prop);
+
+      if (typeof prop === 'string') {
+        return (...args: any[]) => cloudflareProxy.durableObjectCall(objectType, id, prop, args);
+      }
+      return undefined;
+    },
+  });
+}
 
 export const durableObjects = {
-  ZERO_DB: {
-    get: (id: string) => ({
-      setMetaData: (userId: string) =>
-        cloudflareProxy.durableObjectCall<DbRpcDO>('ZERO_DB', id, 'setMetaData', [userId]),
-    }),
-    idFromName: (name: string) => name,
-  },
   ZERO_AGENT: {
-    get: (id: string) => ({
-      setMetaData: (connectionId: string) =>
-        cloudflareProxy.durableObjectCall<ZeroAgent>('ZERO_AGENT', id, 'setMetaData', [
-          connectionId,
-        ]),
-    }),
-    idFromName: (name: string) => name,
+    get: (id: string) => {
+      return createMethodWrapper<ZeroAgent>('ZERO_AGENT', id);
+    },
   },
+
   ZERO_MCP: {
-    get: (id: string) => ({
-      setMetaData: (connectionId: string) =>
-        cloudflareProxy.durableObjectCall<ZeroMCP>('ZERO_MCP', id, 'setMetaData', [connectionId]),
-    }),
-    idFromName: (name: string) => name,
+    get: (id: string) => {
+      return createMethodWrapper<ZeroMCP>('ZERO_MCP', id);
+    },
   },
+
   ZERO_DRIVER: {
-    get: (id: string) => ({
-      setMetaData: (connectionId: string) =>
-        cloudflareProxy.durableObjectCall<DriverRpcDO>('ZERO_DRIVER', id, 'setMetaData', [
-          connectionId,
-        ]),
-      setupAuth: () => cloudflareProxy.durableObjectCall('ZERO_DRIVER', id, 'setupAuth', []),
-    }),
-    idFromName: (name: string) => name,
+    get: (id: string) => {
+      return createMethodWrapper<ZeroDriver>('ZERO_DRIVER', id);
+    },
   },
 };
 

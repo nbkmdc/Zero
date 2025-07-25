@@ -38,10 +38,13 @@ import { DurableObjectOAuthClientProvider } from 'agents/mcp/do-oauth-client-pro
 import { AiChatPrompt, GmailSearchAssistantSystemPrompt } from '../../lib/prompts';
 import { connectionToDriver, getZeroSocketAgent } from '../../lib/server-utils';
 import type { CreateDraftData } from '../../lib/schemas';
+import { kvNamespaces, r2Buckets } from '../../cf-proxy';
+import { createWranglerDB as createDb } from '../../db';
 import { withRetry } from '../../lib/gmail-rate-limit';
 import { getPrompt } from '../../pipelines.effect';
 import { AIChatAgent } from 'agents/ai-chat-agent';
 import { ToolOrchestrator } from './orchestrator';
+import { env as wEnv } from 'cloudflare:workers';
 import { getPromptName } from '../../pipelines';
 import { anthropic } from '@ai-sdk/anthropic';
 import { connection } from '../../db/schema';
@@ -50,8 +53,7 @@ import { tools as authTools } from './tools';
 import { processToolCalls } from './utils';
 import type { Connection } from 'agents';
 import { openai } from '@ai-sdk/openai';
-import { createDb } from '../../db';
-import { DriverRpcDO } from './rpc';
+// import { DriverRpcDO } from './rpc';
 import { eq } from 'drizzle-orm';
 import { env } from '../../env';
 import { Effect } from 'effect';
@@ -61,7 +63,7 @@ const decoder = new TextDecoder();
 const shouldDropTables = false;
 const maxCount = 20;
 const shouldLoop = env.THREAD_SYNC_LOOP !== 'false';
-export class ZeroDriver extends AIChatAgent<typeof env> {
+export class ZeroDriver extends AIChatAgent<Env> {
   private foldersInSync: Map<string, boolean> = new Map();
   private syncThreadsInProgress: Map<string, boolean> = new Map();
   private driver: MailManager | null = null;
@@ -87,8 +89,8 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
 
   async setMetaData(connectionId: string) {
     await this.setName(connectionId);
-    this.agent = await getZeroSocketAgent(connectionId);
-    return new DriverRpcDO(this, connectionId);
+    // this.agent = await getZeroSocketAgent(connectionId);
+    // return new DriverRpcDO(this, connectionId);
   }
 
   async markAsRead(threadIds: string[]) {
@@ -161,15 +163,15 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
   public async setupAuth() {
     if (this.name === 'general') return;
     if (!this.driver) {
-      const { db, conn } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
+      const { db, conn } = createDb(wEnv.HYPERDRIVE.connectionString);
       const _connection = await db.query.connection.findFirst({
         where: eq(connection.id, this.name),
       });
       if (_connection) this.driver = connectionToDriver(_connection);
       this.ctx.waitUntil(conn.end());
-      this.ctx.waitUntil(this.syncThreads('inbox'));
-      this.ctx.waitUntil(this.syncThreads('sent'));
-      this.ctx.waitUntil(this.syncThreads('spam'));
+      //   this.ctx.waitUntil(this.syncThreads('inbox'));
+      //   this.ctx.waitUntil(this.syncThreads('sent'));
+      //   this.ctx.waitUntil(this.syncThreads('spam'));
     }
   }
   async rawListThreads(params: {
@@ -399,11 +401,15 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
           normalizedReceivedOn = new Date().toISOString();
         }
 
-        await env.THREADS_BUCKET.put(this.getThreadKey(threadId), JSON.stringify(threadData), {
-          customMetadata: {
-            threadId,
+        await r2Buckets.THREADS_BUCKET.put(
+          this.getThreadKey(threadId),
+          JSON.stringify(threadData),
+          {
+            customMetadata: {
+              threadId,
+            },
           },
-        });
+        );
 
         void this.sql`
           INSERT OR REPLACE INTO threads (
@@ -863,7 +869,7 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
         } satisfies IGetThreadResponse;
       }
       const row = result[0] as { latest_label_ids: string };
-      const storedThread = await env.THREADS_BUCKET.get(this.getThreadKey(id));
+      const storedThread = await r2Buckets.THREADS_BUCKET.get(this.getThreadKey(id));
 
       const messages: ParsedMessage[] = storedThread
         ? (JSON.parse(await storedThread.text()) as IGetThreadResponse).messages
@@ -896,7 +902,7 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
       }
 
       if (keyNames.length) {
-        await Promise.all(keyNames.map((k: string) => env.snoozed_emails.delete(k)));
+        await Promise.all(keyNames.map((k: string) => kvNamespaces.snoozed_emails.delete(k)));
       }
     } catch (error) {
       console.error('[AGENT][unsnoozeThreadsHandler] Failed', { connectionId, threadIds, error });
@@ -938,7 +944,7 @@ export class ZeroDriver extends AIChatAgent<typeof env> {
   }
 }
 
-export class ZeroAgent extends AIChatAgent<typeof env> {
+export class ZeroAgent extends AIChatAgent<Env> {
   private chatMessageAbortControllers: Map<string, AbortController> = new Map();
 
   async registerZeroMCP() {

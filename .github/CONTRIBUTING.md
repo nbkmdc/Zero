@@ -149,7 +149,7 @@ Zero uses PostgreSQL with Drizzle ORM. Here's how to work with it:
    For local development:
 
    ```
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/zerodotemail"
+   DATABASE_URL="postgresql://postgres:postgres@host.docker.internal:5432/zerodotemail"
    ```
 
 4. **Troubleshooting**

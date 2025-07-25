@@ -1,13 +1,33 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres, { type Sql } from 'postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from './schema';
+import { Pool } from 'pg';
 
-const createDrizzle = (conn: Sql) => drizzle(conn, { schema });
+const createDrizzle = (conn: Pool) => drizzle({ client: conn, schema });
 
-export const createDb = (url: string) => {
-  const conn = postgres(url);
+const createConn = (url: string) =>
+  new Pool({
+    connectionString: url,
+  });
+
+const createDb = (url: string) => {
+  const conn = createConn(url);
   const db = createDrizzle(conn);
   return { db, conn };
 };
 
+/**
+ * To be used in Wrangler runtime, in Durable Objects specifically
+ * @param url
+ * @returns
+ */
+export const createWranglerDB = (url: string) => createDb(url);
+
+/**
+ * To be used in Docker image, to connect to the database.
+ * @param url
+ * @returns
+ */
+export const createDockerDB = (url: string) => createDb(url);
+
 export type DB = ReturnType<typeof createDrizzle>;
+export type Conn = ReturnType<typeof createConn>;

@@ -1,11 +1,11 @@
 import { getCurrentDateContext, GmailSearchAssistantSystemPrompt } from '../lib/prompts';
 import { systemPrompt } from '../services/call-service/system-prompt';
 import { composeEmail } from '../trpc/routes/ai/compose';
-import { getZeroAgent } from '../lib/server-utils';
+import { getZeroDriver } from '../lib/server-utils';
+import { createDockerDB as createDb } from '../db';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { Tools } from '../types';
-import { createDb } from '../db';
 import { env } from '../env';
 import { Hono } from 'hono';
 import { tool } from 'ai';
@@ -38,7 +38,7 @@ aiRouter.post('/do/:action', async (c) => {
     const action = c.req.param('action') as Tools;
     const body = await c.req.json();
     console.log('[DEBUG] action', action, body);
-    const agent = await getZeroAgent(connection.id);
+    const agent = await getZeroDriver(connection.id);
     switch (action) {
       case Tools.ComposeEmail:
         const newBody = await composeEmail({
@@ -126,7 +126,7 @@ aiRouter.post('/call', async (c) => {
   }
 
   console.log('[DEBUG] Creating driver for connection:', connection.id);
-  const agent = await getZeroAgent(connection.id);
+  const agent = await getZeroDriver(connection.id);
 
   const { text } = await generateText({
     model: openai(env.OPENAI_MODEL || 'gpt-4o'),

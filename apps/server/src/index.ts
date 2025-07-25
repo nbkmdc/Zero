@@ -3,7 +3,6 @@ import { env } from 'cloudflare:workers';
 
 class ServerContainer extends Container {
   defaultPort = 1337;
-  sleepAfter = '3m';
   enableInternet = true;
 
   envVars: Record<string, string> = Object.fromEntries(Object.entries(env));

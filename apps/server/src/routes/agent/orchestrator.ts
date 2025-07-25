@@ -1,7 +1,7 @@
 import { streamText, tool, type DataStreamWriter, type ToolSet } from 'ai';
 import { perplexity } from '@ai-sdk/perplexity';
 
-import { getZeroAgent } from '../../lib/server-utils';
+import { getZeroDriver } from '../../lib/server-utils';
 import { Tools } from '../../types';
 import { z } from 'zod';
 
@@ -75,7 +75,7 @@ export class ToolOrchestrator {
           query: z.string().describe('The query to search the inbox for'),
         }),
         execute: async ({ query }) => {
-          const agent = await getZeroAgent(this.connectionId);
+          const agent = await getZeroDriver(this.connectionId);
           const res = await agent.searchThreads({ query, maxResults: 10 });
           return res.threadIds;
         },

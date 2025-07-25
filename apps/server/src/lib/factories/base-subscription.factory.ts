@@ -2,7 +2,8 @@ import { defaultLabels, EProviders } from '../../types';
 
 import { connection } from '../../db/schema';
 
-import { createDb } from '../../db';
+import { createDockerDB as createDb } from '../../db';
+import { kvNamespaces } from '../../cf-proxy';
 import { eq } from 'drizzle-orm';
 import { env } from '../../env';
 
@@ -37,9 +38,9 @@ export abstract class BaseSubscriptionFactory {
   }
 
   protected async initializeConnectionLabels(connectionId: string): Promise<void> {
-    const existingLabels = await env.connection_labels.get(connectionId);
+    const existingLabels = await kvNamespaces.connection_labels.get(connectionId);
     if (!existingLabels?.trim().length) {
-      await env.connection_labels.put(connectionId, JSON.stringify(defaultLabels));
+      await kvNamespaces.connection_labels.put(connectionId, JSON.stringify(defaultLabels));
     }
   }
 }

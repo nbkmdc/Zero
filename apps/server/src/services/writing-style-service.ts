@@ -2,11 +2,11 @@ import { mapToObj, pipe, entries, sortBy, take, fromEntries } from 'remeda';
 
 import { writingStyleMatrix } from '../db/schema';
 
+import { createDockerDB as createDb } from '../db';
 import { google } from '@ai-sdk/google';
 import { jsonrepair } from 'jsonrepair';
 import { generateObject } from 'ai';
 import { eq } from 'drizzle-orm';
-import { createDb } from '../db';
 import pRetry from 'p-retry';
 import { env } from '../env';
 import { z } from 'zod';

@@ -14,28 +14,26 @@ import {
   userSettings,
   writingStyleMatrix,
 } from './db/schema';
-import { WorkerEntrypoint, DurableObject, RpcTarget } from 'cloudflare:workers';
 import { EProviders, type ISubscribeBatch, type IThreadBatch } from './types';
+import { getContainer, getRandom } from '@cloudflare/containers';
 import { oAuthDiscoveryMetadata } from 'better-auth/plugins';
 import { getZeroDB, verifyToken } from './lib/server-utils';
 import { eq, and, desc, asc, inArray } from 'drizzle-orm';
 import { EWorkflowType, runWorkflow } from './pipelines';
 import { ZeroAgent, ZeroDriver } from './routes/agent';
-import { getContainer } from '@cloudflare/containers';
 import { contextStorage } from 'hono/context-storage';
+import { WorkerEntrypoint } from 'cloudflare:workers';
 import { defaultUserSettings } from './lib/schemas';
 import { createLocalJWKSet, jwtVerify } from 'jose';
+import { getZeroDriver } from './lib/server-utils';
 import { routePartykitRequest } from 'partyserver';
-import { getZeroAgent } from './lib/server-utils';
 import { enableBrainFunction } from './lib/brain';
 import { trpcServer } from '@hono/trpc-server';
 import { agentsMiddleware } from 'hono-agents';
 import { ZeroMCP } from './routes/agent/mcp';
 import { publicRouter } from './routes/auth';
 import { autumnApi } from './routes/autumn';
-import { env } from 'cloudflare:workers';
 import type { HonoContext } from './ctx';
-import { createDb, type DB } from './db';
 import { createAuth } from './lib/auth';
 import { aiRouter } from './routes/ai';
 import { ServerContainer } from '.';
@@ -43,464 +41,13 @@ import { Autumn } from 'autumn-js';
 import { appRouter } from './trpc';
 import { cors } from 'hono/cors';
 import { Effect } from 'effect';
+import { type DB } from './db';
 import { Hono } from 'hono';
 
 const SENTRY_HOST = 'o4509328786915328.ingest.us.sentry.io';
 const SENTRY_PROJECT_IDS = new Set(['4509328795303936']);
 
-export class DbRpcDO extends RpcTarget {
-  constructor(
-    private mainDo: ZeroDB,
-    private userId: string,
-  ) {
-    super();
-  }
-
-  async findUser(): Promise<typeof user.$inferSelect | undefined> {
-    return await this.mainDo.findUser(this.userId);
-  }
-
-  async findUserConnection(
-    connectionId: string,
-  ): Promise<typeof connection.$inferSelect | undefined> {
-    return await this.mainDo.findUserConnection(this.userId, connectionId);
-  }
-
-  async updateUser(data: Partial<typeof user.$inferInsert>) {
-    return await this.mainDo.updateUser(this.userId, data);
-  }
-
-  async deleteConnection(connectionId: string) {
-    return await this.mainDo.deleteConnection(connectionId, this.userId);
-  }
-
-  async findFirstConnection(): Promise<typeof connection.$inferSelect | undefined> {
-    return await this.mainDo.findFirstConnection(this.userId);
-  }
-
-  async findManyConnections(): Promise<(typeof connection.$inferSelect)[]> {
-    return await this.mainDo.findManyConnections(this.userId);
-  }
-
-  async findManyNotesByThreadId(threadId: string): Promise<(typeof note.$inferSelect)[]> {
-    return await this.mainDo.findManyNotesByThreadId(this.userId, threadId);
-  }
-
-  async createNote(payload: Omit<typeof note.$inferInsert, 'userId'>) {
-    return await this.mainDo.createNote(this.userId, payload as typeof note.$inferInsert);
-  }
-
-  async updateNote(noteId: string, payload: Partial<typeof note.$inferInsert>) {
-    return await this.mainDo.updateNote(this.userId, noteId, payload);
-  }
-
-  async updateManyNotes(
-    notes: { id: string; order: number; isPinned?: boolean | null }[],
-  ): Promise<boolean> {
-    return await this.mainDo.updateManyNotes(this.userId, notes);
-  }
-
-  async findManyNotesByIds(noteIds: string[]): Promise<(typeof note.$inferSelect)[]> {
-    return await this.mainDo.findManyNotesByIds(this.userId, noteIds);
-  }
-
-  async deleteNote(noteId: string) {
-    return await this.mainDo.deleteNote(this.userId, noteId);
-  }
-
-  async findNoteById(noteId: string): Promise<typeof note.$inferSelect | undefined> {
-    return await this.mainDo.findNoteById(this.userId, noteId);
-  }
-
-  async findHighestNoteOrder(): Promise<{ order: number } | undefined> {
-    return await this.mainDo.findHighestNoteOrder(this.userId);
-  }
-
-  async deleteUser() {
-    return await this.mainDo.deleteUser(this.userId);
-  }
-
-  async findUserSettings(): Promise<typeof userSettings.$inferSelect | undefined> {
-    return await this.mainDo.findUserSettings(this.userId);
-  }
-
-  async findUserHotkeys(): Promise<(typeof userHotkeys.$inferSelect)[]> {
-    return await this.mainDo.findUserHotkeys(this.userId);
-  }
-
-  async insertUserHotkeys(shortcuts: (typeof userHotkeys.$inferInsert)[]) {
-    return await this.mainDo.insertUserHotkeys(this.userId, shortcuts);
-  }
-
-  async insertUserSettings(settings: typeof defaultUserSettings) {
-    return await this.mainDo.insertUserSettings(this.userId, settings);
-  }
-
-  async updateUserSettings(settings: typeof defaultUserSettings) {
-    return await this.mainDo.updateUserSettings(this.userId, settings);
-  }
-
-  async createConnection(
-    providerId: EProviders,
-    email: string,
-    updatingInfo: {
-      expiresAt: Date;
-      scope: string;
-    },
-  ): Promise<{ id: string }[]> {
-    return await this.mainDo.createConnection(providerId, email, this.userId, updatingInfo);
-  }
-
-  async findConnectionById(
-    connectionId: string,
-  ): Promise<typeof connection.$inferSelect | undefined> {
-    return await this.mainDo.findConnectionById(connectionId);
-  }
-
-  async syncUserMatrix(connectionId: string, emailStyleMatrix: EmailMatrix) {
-    return await this.mainDo.syncUserMatrix(connectionId, emailStyleMatrix);
-  }
-
-  async findWritingStyleMatrix(
-    connectionId: string,
-  ): Promise<typeof writingStyleMatrix.$inferSelect | undefined> {
-    return await this.mainDo.findWritingStyleMatrix(connectionId);
-  }
-
-  async deleteActiveConnection(connectionId: string) {
-    return await this.mainDo.deleteActiveConnection(this.userId, connectionId);
-  }
-
-  async updateConnection(
-    connectionId: string,
-    updatingInfo: Partial<typeof connection.$inferInsert>,
-  ) {
-    return await this.mainDo.updateConnection(connectionId, updatingInfo);
-  }
-}
-
-class ZeroDB extends DurableObject<Env> {
-  db: DB = createDb(env.HYPERDRIVE.connectionString).db;
-
-  async setMetaData(userId: string) {
-    return new DbRpcDO(this, userId);
-  }
-
-  async findUser(userId: string): Promise<typeof user.$inferSelect | undefined> {
-    return await this.db.query.user.findFirst({
-      where: eq(user.id, userId),
-    });
-  }
-
-  async findUserConnection(
-    userId: string,
-    connectionId: string,
-  ): Promise<typeof connection.$inferSelect | undefined> {
-    return await this.db.query.connection.findFirst({
-      where: and(eq(connection.userId, userId), eq(connection.id, connectionId)),
-    });
-  }
-
-  async updateUser(userId: string, data: Partial<typeof user.$inferInsert>) {
-    return await this.db.update(user).set(data).where(eq(user.id, userId));
-  }
-
-  async deleteConnection(connectionId: string, userId: string) {
-    const connections = await this.findManyConnections(userId);
-    if (connections.length <= 1) {
-      throw new Error('Cannot delete the last connection. At least one connection is required.');
-    }
-    return await this.db
-      .delete(connection)
-      .where(and(eq(connection.id, connectionId), eq(connection.userId, userId)));
-  }
-
-  async findFirstConnection(userId: string): Promise<typeof connection.$inferSelect | undefined> {
-    return await this.db.query.connection.findFirst({
-      where: eq(connection.userId, userId),
-    });
-  }
-
-  async findManyConnections(userId: string): Promise<(typeof connection.$inferSelect)[]> {
-    return await this.db.query.connection.findMany({
-      where: eq(connection.userId, userId),
-    });
-  }
-
-  async findManyNotesByThreadId(
-    userId: string,
-    threadId: string,
-  ): Promise<(typeof note.$inferSelect)[]> {
-    return await this.db.query.note.findMany({
-      where: and(eq(note.userId, userId), eq(note.threadId, threadId)),
-      orderBy: [desc(note.isPinned), asc(note.order), desc(note.createdAt)],
-    });
-  }
-
-  async createNote(userId: string, payload: typeof note.$inferInsert) {
-    return await this.db
-      .insert(note)
-      .values({
-        ...payload,
-        userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
-  }
-
-  async updateNote(
-    userId: string,
-    noteId: string,
-    payload: Partial<typeof note.$inferInsert>,
-  ): Promise<typeof note.$inferSelect | undefined> {
-    const [updated] = await this.db
-      .update(note)
-      .set({
-        ...payload,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(note.id, noteId), eq(note.userId, userId)))
-      .returning();
-    return updated;
-  }
-
-  async updateManyNotes(
-    userId: string,
-    notes: { id: string; order: number; isPinned?: boolean | null }[],
-  ): Promise<boolean> {
-    return await this.db.transaction(async (tx) => {
-      for (const n of notes) {
-        const updateData: Record<string, unknown> = {
-          order: n.order,
-          updatedAt: new Date(),
-        };
-
-        if (n.isPinned !== undefined) {
-          updateData.isPinned = n.isPinned;
-        }
-        await tx
-          .update(note)
-          .set(updateData)
-          .where(and(eq(note.id, n.id), eq(note.userId, userId)));
-      }
-      return true;
-    });
-  }
-
-  async findManyNotesByIds(
-    userId: string,
-    noteIds: string[],
-  ): Promise<(typeof note.$inferSelect)[]> {
-    return await this.db.query.note.findMany({
-      where: and(eq(note.userId, userId), inArray(note.id, noteIds)),
-    });
-  }
-
-  async deleteNote(userId: string, noteId: string) {
-    return await this.db.delete(note).where(and(eq(note.id, noteId), eq(note.userId, userId)));
-  }
-
-  async findNoteById(
-    userId: string,
-    noteId: string,
-  ): Promise<typeof note.$inferSelect | undefined> {
-    return await this.db.query.note.findFirst({
-      where: and(eq(note.id, noteId), eq(note.userId, userId)),
-    });
-  }
-
-  async findHighestNoteOrder(userId: string): Promise<{ order: number } | undefined> {
-    return await this.db.query.note.findFirst({
-      where: eq(note.userId, userId),
-      orderBy: desc(note.order),
-      columns: { order: true },
-    });
-  }
-
-  async deleteUser(userId: string) {
-    return await this.db.transaction(async (tx) => {
-      await tx.delete(connection).where(eq(connection.userId, userId));
-      await tx.delete(account).where(eq(account.userId, userId));
-      await tx.delete(session).where(eq(session.userId, userId));
-      await tx.delete(userSettings).where(eq(userSettings.userId, userId));
-      await tx.delete(user).where(eq(user.id, userId));
-      await tx.delete(userHotkeys).where(eq(userHotkeys.userId, userId));
-    });
-  }
-
-  async findUserSettings(userId: string): Promise<typeof userSettings.$inferSelect | undefined> {
-    return await this.db.query.userSettings.findFirst({
-      where: eq(userSettings.userId, userId),
-    });
-  }
-
-  async findUserHotkeys(userId: string): Promise<(typeof userHotkeys.$inferSelect)[]> {
-    return await this.db.query.userHotkeys.findMany({
-      where: eq(userHotkeys.userId, userId),
-    });
-  }
-
-  async insertUserHotkeys(userId: string, shortcuts: (typeof userHotkeys.$inferInsert)[]) {
-    return await this.db
-      .insert(userHotkeys)
-      .values({
-        userId,
-        shortcuts,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: userHotkeys.userId,
-        set: {
-          shortcuts,
-          updatedAt: new Date(),
-        },
-      });
-  }
-
-  async insertUserSettings(userId: string, settings: typeof defaultUserSettings) {
-    return await this.db.insert(userSettings).values({
-      id: crypto.randomUUID(),
-      userId,
-      settings,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  }
-
-  async updateUserSettings(userId: string, settings: typeof defaultUserSettings) {
-    return await this.db
-      .insert(userSettings)
-      .values({
-        id: crypto.randomUUID(),
-        userId,
-        settings,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: userSettings.userId,
-        set: {
-          settings,
-          updatedAt: new Date(),
-        },
-      });
-  }
-
-  async createConnection(
-    providerId: EProviders,
-    email: string,
-    userId: string,
-    updatingInfo: {
-      expiresAt: Date;
-      scope: string;
-    },
-  ): Promise<{ id: string }[]> {
-    return await this.db
-      .insert(connection)
-      .values({
-        ...updatingInfo,
-        providerId,
-        id: crypto.randomUUID(),
-        email,
-        userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [connection.email, connection.userId],
-        set: {
-          ...updatingInfo,
-          updatedAt: new Date(),
-        },
-      })
-      .returning({ id: connection.id });
-  }
-
-  /**
-   * @param connectionId Dangerous, use findUserConnection instead
-   * @returns
-   */
-  async findConnectionById(
-    connectionId: string,
-  ): Promise<typeof connection.$inferSelect | undefined> {
-    return await this.db.query.connection.findFirst({
-      where: eq(connection.id, connectionId),
-    });
-  }
-
-  async syncUserMatrix(connectionId: string, emailStyleMatrix: EmailMatrix) {
-    await this.db.transaction(async (tx) => {
-      const [existingMatrix] = await tx
-        .select({
-          numMessages: writingStyleMatrix.numMessages,
-          style: writingStyleMatrix.style,
-        })
-        .from(writingStyleMatrix)
-        .where(eq(writingStyleMatrix.connectionId, connectionId));
-
-      if (existingMatrix) {
-        const newStyle = createUpdatedMatrixFromNewEmail(
-          existingMatrix.numMessages,
-          existingMatrix.style as WritingStyleMatrix,
-          emailStyleMatrix,
-        );
-
-        await tx
-          .update(writingStyleMatrix)
-          .set({
-            numMessages: existingMatrix.numMessages + 1,
-            style: newStyle,
-          })
-          .where(eq(writingStyleMatrix.connectionId, connectionId));
-      } else {
-        const newStyle = initializeStyleMatrixFromEmail(emailStyleMatrix);
-
-        await tx
-          .insert(writingStyleMatrix)
-          .values({
-            connectionId,
-            numMessages: 1,
-            style: newStyle,
-          })
-          .onConflictDoNothing();
-      }
-    });
-  }
-
-  async findWritingStyleMatrix(
-    connectionId: string,
-  ): Promise<typeof writingStyleMatrix.$inferSelect | undefined> {
-    return await this.db.query.writingStyleMatrix.findFirst({
-      where: eq(writingStyleMatrix.connectionId, connectionId),
-      columns: {
-        numMessages: true,
-        style: true,
-        updatedAt: true,
-        connectionId: true,
-      },
-    });
-  }
-
-  async deleteActiveConnection(userId: string, connectionId: string) {
-    return await this.db
-      .delete(connection)
-      .where(and(eq(connection.userId, userId), eq(connection.id, connectionId)));
-  }
-
-  async updateConnection(
-    connectionId: string,
-    updatingInfo: Partial<typeof connection.$inferInsert>,
-  ) {
-    return await this.db
-      .update(connection)
-      .set(updatingInfo)
-      .where(eq(connection.id, connectionId));
-  }
-}
-
-export default class extends WorkerEntrypoint<typeof env> {
+export default class extends WorkerEntrypoint<Env> {
   db: DB | undefined;
 
   private createInternalRoutes() {
@@ -522,28 +69,35 @@ export default class extends WorkerEntrypoint<typeof env> {
       })
       .post('/durable-objects/:type/:id/:method', async (c) => {
         try {
+          console.log('here');
+
           const { type, id, method } = c.req.param();
+          // console.log(type, id, method);
           const { args } = await c.req.json();
 
-          let stub;
+          // console.log(args);
+
+          let stub:
+            | DurableObjectStub<ZeroAgent>
+            | DurableObjectStub<ZeroMCP>
+            | DurableObjectStub<ZeroDriver>;
           switch (type) {
-            case 'ZERO_DB':
-              stub = env.ZERO_DB.get(env.ZERO_DB.idFromName(id));
-              break;
-            case 'ZERO_AGENT':
-              stub = env.ZERO_AGENT.get(env.ZERO_AGENT.idFromName(id));
-              break;
             case 'ZERO_MCP':
-              stub = env.ZERO_MCP.get(env.ZERO_MCP.idFromName(id));
+              stub = this.env.ZERO_MCP.get(this.env.ZERO_MCP.idFromName(id));
               break;
             case 'ZERO_DRIVER':
-              stub = env.ZERO_DRIVER.get(env.ZERO_DRIVER.idFromName(id));
+              stub = this.env.ZERO_DRIVER.get(this.env.ZERO_DRIVER.idFromName(id));
               break;
             default:
               return c.json({ success: false, error: 'Unknown durable object type' }, 400);
           }
 
+          console.log('[stub:]', stub);
+
           const result = await (stub as any)[method](...args);
+
+          console.log('[RESULT]', result);
+
           return c.json({ success: true, data: result });
         } catch (error) {
           return c.json(
@@ -555,7 +109,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       .get('/kv/:namespace/:key', async (c) => {
         try {
           const { namespace, key } = c.req.param();
-          const kvNamespace = (env as any)[namespace];
+          const kvNamespace = (this.env as any)[namespace];
           if (!kvNamespace) {
             return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
           }
@@ -573,7 +127,7 @@ export default class extends WorkerEntrypoint<typeof env> {
         try {
           const { namespace, key } = c.req.param();
           const { value, metadata } = await c.req.json();
-          const kvNamespace = (env as any)[namespace];
+          const kvNamespace = (this.env as any)[namespace];
           if (!kvNamespace) {
             return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
           }
@@ -590,7 +144,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       .delete('/kv/:namespace/:key', async (c) => {
         try {
           const { namespace, key } = c.req.param();
-          const kvNamespace = (env as any)[namespace];
+          const kvNamespace = (this.env as any)[namespace];
           if (!kvNamespace) {
             return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
           }
@@ -607,7 +161,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       .get('/kv/:namespace', async (c) => {
         try {
           const { namespace } = c.req.param();
-          const kvNamespace = (env as any)[namespace];
+          const kvNamespace = (this.env as any)[namespace];
           if (!kvNamespace) {
             return c.json({ success: false, error: 'Unknown KV namespace' }, 400);
           }
@@ -635,10 +189,10 @@ export default class extends WorkerEntrypoint<typeof env> {
           let queue;
           switch (name) {
             case 'thread_queue':
-              queue = env.thread_queue;
+              queue = this.env.thread_queue;
               break;
             case 'subscribe_queue':
-              queue = env.subscribe_queue;
+              queue = this.env.subscribe_queue;
               break;
             default:
               return c.json({ success: false, error: 'Unknown queue' }, 400);
@@ -660,7 +214,7 @@ export default class extends WorkerEntrypoint<typeof env> {
 
           switch (bucket) {
             case 'THREADS_BUCKET':
-              r2Bucket = env.THREADS_BUCKET;
+              r2Bucket = this.env.THREADS_BUCKET;
               break;
             default:
               return c.json({ success: false, error: 'Unknown R2 bucket' }, 400);
@@ -683,7 +237,7 @@ export default class extends WorkerEntrypoint<typeof env> {
 
           switch (bucket) {
             case 'THREADS_BUCKET':
-              r2Bucket = env.THREADS_BUCKET;
+              r2Bucket = this.env.THREADS_BUCKET;
               break;
             default:
               return c.json({ success: false, error: 'Unknown R2 bucket' }, 400);
@@ -705,7 +259,7 @@ export default class extends WorkerEntrypoint<typeof env> {
 
           switch (bucket) {
             case 'THREADS_BUCKET':
-              r2Bucket = env.THREADS_BUCKET;
+              r2Bucket = this.env.THREADS_BUCKET;
               break;
             default:
               return c.json({ success: false, error: 'Unknown R2 bucket' }, 400);
@@ -734,7 +288,7 @@ export default class extends WorkerEntrypoint<typeof env> {
           } catch {
             return null;
           }
-          const cookieDomain = env.COOKIE_DOMAIN;
+          const cookieDomain = this.env.COOKIE_DOMAIN;
           if (!cookieDomain) return null;
           if (hostname === cookieDomain || hostname.endsWith('.' + cookieDomain)) {
             return origin;
@@ -800,7 +354,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       }),
     )
     .get('/health', (c) => c.json({ message: 'Zero Server is Up!' }))
-    .get('/', (c) => c.redirect(`${env.VITE_PUBLIC_APP_URL}`))
+    .get('/', (c) => c.redirect(`${this.env.VITE_PUBLIC_APP_URL}`))
     .post('/monitoring/sentry', async (c) => {
       try {
         const envelopeBytes = await c.req.arrayBuffer();
@@ -832,7 +386,7 @@ export default class extends WorkerEntrypoint<typeof env> {
     })
     .post('/a8n/notify/:providerId', async (c) => {
       if (!c.req.header('Authorization')) return c.json({ error: 'Unauthorized' }, { status: 401 });
-      if (env.DISABLE_WORKFLOWS === 'true') return c.json({ message: 'OK' }, { status: 200 });
+      if (this.env.DISABLE_WORKFLOWS === 'true') return c.json({ message: 'OK' }, { status: 200 });
       const providerId = c.req.param('providerId');
       if (providerId === EProviders.google) {
         const body = await c.req.json<{ historyId: string }>();
@@ -847,7 +401,7 @@ export default class extends WorkerEntrypoint<typeof env> {
           return c.json({}, { status: 200 });
         }
         try {
-          await env.thread_queue.send({
+          await this.env.thread_queue.send({
             providerId,
             historyId: body.historyId,
             subscriptionName: subHeader!,
@@ -865,11 +419,13 @@ export default class extends WorkerEntrypoint<typeof env> {
 
   async fetch(request: Request): Promise<Response> {
     const pathname = new URL(request.url).pathname;
+    console.log('Got a fetch request', pathname);
     if (pathname.startsWith('/api')) {
-      const containerInstance = getContainer(env.SERVER_CONTAINER, pathname);
+      // console.log('pathname', pathname, Array.from(request.headers.entries()));
+      const containerInstance = getContainer(this.env.SERVER_CONTAINER, pathname);
       return containerInstance.fetch(request);
     }
-    return this.app.fetch(request, env);
+    return this.app.fetch(request, this.env);
   }
 
   async queue(batch: MessageBatch<any>) {
@@ -931,7 +487,7 @@ export default class extends WorkerEntrypoint<typeof env> {
 
   async scheduled() {
     console.log('[SCHEDULED] Checking for expired subscriptions...');
-    const allAccounts = await env.subscribed_accounts.list();
+    const allAccounts = await this.env.subscribed_accounts.list();
     console.log('[SCHEDULED] allAccounts', allAccounts.keys);
     const now = new Date();
     const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
@@ -947,7 +503,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       const listResp: {
         keys: { name: string; metadata?: { wakeAt?: string } }[];
         cursor?: string;
-      } = await env.snoozed_emails.list({ cursor, limit: 1000 });
+      } = await this.env.snoozed_emails.list({ cursor, limit: 1000 });
       cursor = listResp.cursor;
 
       for (const key of listResp.keys) {
@@ -974,7 +530,7 @@ export default class extends WorkerEntrypoint<typeof env> {
     await Promise.all(
       Object.entries(unsnoozeMap).map(async ([connectionId, { threadIds, keyNames }]) => {
         try {
-          const agent = await getZeroAgent(connectionId);
+          const agent = await getZeroDriver(connectionId);
           await agent.queue('unsnoozeThreadsHandler', { connectionId, threadIds, keyNames });
         } catch (error) {
           console.error('Failed to enqueue unsnooze tasks', { connectionId, threadIds, error });
@@ -985,7 +541,7 @@ export default class extends WorkerEntrypoint<typeof env> {
     await Promise.all(
       allAccounts.keys.map(async (key) => {
         const [connectionId, providerId] = key.name.split('__');
-        const lastSubscribed = await env.gmail_sub_age.get(key.name);
+        const lastSubscribed = await this.env.gmail_sub_age.get(key.name);
 
         if (lastSubscribed) {
           const subscriptionDate = new Date(lastSubscribed);
@@ -1006,7 +562,7 @@ export default class extends WorkerEntrypoint<typeof env> {
       );
       await Promise.all(
         expiredSubscriptions.map(async ({ connectionId, providerId }) => {
-          await env.subscribe_queue.send({ connectionId, providerId });
+          await this.env.subscribe_queue.send({ connectionId, providerId });
         }),
       );
     }
@@ -1017,4 +573,4 @@ export default class extends WorkerEntrypoint<typeof env> {
   }
 }
 
-export { ZeroAgent, ZeroMCP, ZeroDB, ZeroDriver, ServerContainer };
+export { ZeroAgent, ZeroMCP, ZeroDriver, ServerContainer };

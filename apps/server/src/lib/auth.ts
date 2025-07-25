@@ -13,6 +13,7 @@ import { getBrowserTimezone, isValidTimezone } from './timezones';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { getSocialProviders } from './auth-providers';
 import { redis, resend, twilio } from './services';
+import { createDockerDB as createDb } from '../db';
 import { getContext } from 'hono/context-storage';
 import { dubAnalytics } from '@dub/better-auth';
 import { defaultUserSettings } from './schemas';
@@ -22,7 +23,7 @@ import { getZeroDB } from './server-utils';
 import { type EProviders } from '../types';
 import type { HonoContext } from '../ctx';
 import { createDriver } from './driver';
-import { createDb } from '../db';
+import { queues } from '../cf-proxy';
 import { Effect } from 'effect';
 import { env } from '../env';
 import { Dub } from 'dub';
@@ -136,7 +137,7 @@ const connectionHandlerHook = async (account: Account) => {
   }
 
   if (env.GOOGLE_S_ACCOUNT && env.GOOGLE_S_ACCOUNT !== '{}') {
-    await env.subscribe_queue.send({
+    await queues.subscribe_queue.send({
       connectionId: result.id,
       providerId: account.providerId,
     });
@@ -313,23 +314,23 @@ export const createAuth = () => {
 };
 
 const createAuthConfig = () => {
-  const cache = redis();
+  // const cache = redis();
   const { db } = createDb(env.HYPERDRIVE_CONNECTION_STRING);
   return {
     database: drizzleAdapter(db, { provider: 'pg' }),
-    secondaryStorage: {
-      get: async (key: string) => {
-        const value = await cache.get(key);
-        return typeof value === 'string' ? value : value ? JSON.stringify(value) : null;
-      },
-      set: async (key: string, value: string, ttl?: number) => {
-        if (ttl) await cache.set(key, value, { ex: ttl });
-        else await cache.set(key, value);
-      },
-      delete: async (key: string) => {
-        await cache.del(key);
-      },
-    },
+    // secondaryStorage: {
+    //   get: async (key: string) => {
+    //     const value = await cache.get(key);
+    //     return typeof value === 'string' ? value : value ? JSON.stringify(value) : null;
+    //   },
+    //   set: async (key: string, value: string, ttl?: number) => {
+    //     if (ttl) await cache.set(key, value, { ex: ttl });
+    //     else await cache.set(key, value);
+    //   },
+    //   delete: async (key: string) => {
+    //     await cache.del(key);
+    //   },
+    // },
     advanced: {
       ipAddress: {
         disableIpTracking: true,
@@ -356,7 +357,7 @@ const createAuthConfig = () => {
       expiresIn: 60 * 60 * 24 * 30, // 30 days
       updateAge: 60 * 60 * 24 * 3, // 1 day (every 1 day the session expiration is updated)
     },
-    socialProviders: getSocialProviders(env as unknown as Record<string, string>),
+    socialProviders: getSocialProviders(env),
     account: {
       accountLinking: {
         enabled: true,

@@ -237,8 +237,12 @@ Zero uses PostgreSQL for storing data. Here's how to set it up:
    For local development use:
 
    ```
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/zerodotemail"
+   DATABASE_URL="postgresql://postgres:postgres@host.docker.internal:5432/zerodotemail"
    ```
+
+   Note:
+
+   Due to having two different runtime environments, the connection string needs to be adjusted accordingly. So use `createWrangerDb` and `createDockerDb` accordingly.
 
 3. **Database Commands**
 

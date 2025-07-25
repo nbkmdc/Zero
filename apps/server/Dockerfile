@@ -13,5 +13,6 @@ RUN bun install --ignore-scripts
 WORKDIR /app/src
 
 
-EXPOSE 1337
+USER bun
+EXPOSE 1337/tcp
 CMD ["bun", "run","--watch","server.ts"]

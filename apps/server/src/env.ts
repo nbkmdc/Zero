@@ -30,9 +30,9 @@ export const env = {
 
   HYPERDRIVE_CONNECTION_STRING:
     process.env.HYPERDRIVE_CONNECTION_STRING ||
-    'postgresql://postgres:postgres@localhost:5432/zerodotemail',
+    'postgresql://postgres:postgres@host.docker.internal:5432/zerodotemail',
 
-  CLOUDFLARE_WORKER_URL: process.env.CLOUDFLARE_WORKER_URL || 'http://localhost:8787',
+  CLOUDFLARE_WORKER_URL: process.env.CLOUDFLARE_WORKER_URL || 'http://host.docker.internal:8787',
   CLOUDFLARE_INTERNAL_SECRET: process.env.CLOUDFLARE_INTERNAL_SECRET || 'internal-secret',
 
   ZERO_DB_URL: process.env.ZERO_DB_URL || '',
@@ -58,4 +58,4 @@ export const env = {
   VECTORIZE_MESSAGE_URL: process.env.VECTORIZE_MESSAGE_URL || '',
 };
 
-export type Env = typeof env;
+export type LocalEnv = typeof env;

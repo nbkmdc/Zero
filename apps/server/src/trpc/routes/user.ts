@@ -1,5 +1,6 @@
 import { privateProcedure, router } from '../trpc';
 import jwt from '@tsndr/cloudflare-worker-jwt';
+import { env } from '../../env';
 
 export const userRouter = router({
   delete: privateProcedure.mutation(async ({ ctx }) => {
@@ -18,7 +19,7 @@ export const userRouter = router({
         user_id: ctx.sessionUser.id,
         email: ctx.sessionUser.email,
       },
-      ctx.c.env.JWT_SECRET,
+      env.JWT_SECRET,
     );
     return token;
   }),

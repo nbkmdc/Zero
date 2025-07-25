@@ -23,15 +23,15 @@ import {
   analyzeEmailIntent,
 } from './thread-workflow-utils';
 import { defaultLabels, EPrompts, EProviders, type ParsedMessage, type Sender } from './types';
-import { getZeroAgent } from './lib/server-utils';
+import { getZeroDriver } from './lib/server-utils';
 import { type gmail_v1 } from '@googleapis/gmail';
+import { createDockerDB as createDb } from './db';
 import { getPromptName } from './pipelines';
 import { kvNamespaces } from './cf-proxy';
 import { connection } from './db/schema';
 import { Effect, Console } from 'effect';
 import * as cheerio from 'cheerio';
 import { eq } from 'drizzle-orm';
-import { createDb } from './db';
 import { env } from './env';
 
 const showLogs = true;
@@ -235,7 +235,7 @@ export const runZeroWorkflow = (
     });
 
     const agent = yield* Effect.tryPromise({
-      try: async () => await getZeroAgent(foundConnection.id),
+      try: async () => await getZeroDriver(foundConnection.id),
       catch: (error) => ({ _tag: 'DatabaseError' as const, error }),
     });
 
@@ -448,7 +448,7 @@ export const runThreadWorkflow = (
       });
 
       const agent = yield* Effect.tryPromise({
-        try: async () => await getZeroAgent(foundConnection.id),
+        try: async () => await getZeroDriver(foundConnection.id),
         catch: (error) => ({ _tag: 'DatabaseError' as const, error }),
       });
 

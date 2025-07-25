@@ -16,13 +16,13 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getCurrentDateContext } from '../../lib/prompts';
-import { getZeroAgent } from '../../lib/server-utils';
+import { createWranglerDB as createDb } from '../../db';
+import { getZeroDriver } from '../../lib/server-utils';
 import { connection } from '../../db/schema';
 import { FOLDERS } from '../../lib/utils';
 import { env } from 'cloudflare:workers';
 import { eq, and } from 'drizzle-orm';
 import { McpAgent } from 'agents/mcp';
-import { createDb } from '../../db';
 import z from 'zod';
 
 export class ZeroMCP extends McpAgent<typeof env, Record<string, unknown>, { userId: string }> {
@@ -116,7 +116,7 @@ export class ZeroMCP extends McpAgent<typeof env, Record<string, unknown>, { use
       },
     );
 
-    const agent = await getZeroAgent(_connection.id);
+    const agent = await getZeroDriver(_connection.id);
 
     this.server.registerTool(
       'listThreads',
