@@ -74,6 +74,55 @@ export class OutlookMailManager implements MailManager {
       { messageId, attachmentId },
     );
   }
+
+  public async getMessageAttachments(messageId: string) {
+    return this.withErrorHandler(
+      'getMessageAttachments',
+      async () => {
+        const message: Message = await this.graphClient
+          .api(`/me/messages/${messageId}`)
+          .expand('attachments')
+          .get();
+
+        if (!message.attachments) {
+          return [];
+        }
+
+        const attachments = await Promise.all(
+          message.attachments.map(async (attachment) => {
+            if (!attachment.id) {
+              return null;
+            }
+
+            try {
+              const attachmentData = await this.getAttachment(messageId, attachment.id);
+              return {
+                filename: attachment.name || '',
+                mimeType: attachment.contentType || '',
+                size: attachment.size || 0,
+                attachmentId: attachment.id,
+                headers: [], // Microsoft Graph doesn't provide attachment headers like Gmail
+                body: attachmentData || '',
+              };
+            } catch (error) {
+              console.error(`Failed to get attachment ${attachment.id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        return attachments.filter((attachment) => attachment !== null) as {
+          filename: string;
+          mimeType: string;
+          size: number;
+          attachmentId: string;
+          headers: { name: string; value: string }[];
+          body: string;
+        }[];
+      },
+      { messageId },
+    );
+  }
   public getEmailAliases() {
     return this.withErrorHandler('getEmailAliases', async () => {
       const user: User = await this.graphClient.api('/me').select('mail,userPrincipalName').get();
@@ -689,9 +738,8 @@ export class OutlookMailManager implements MailManager {
         if (data.attachments && data.attachments.length > 0) {
           const regularAttachments = await Promise.all(
             data.attachments.map(async (file) => {
-              const arrayBuffer = await file.arrayBuffer();
-              const buffer = Buffer.from(arrayBuffer);
-              const base64Content = buffer.toString('base64');
+              // Use the base64 content directly since it's already provided
+              const base64Content = file.base64;
 
               return {
                 '@odata.type': '#microsoft.graph.fileAttachment',
@@ -1173,9 +1221,8 @@ export class OutlookMailManager implements MailManager {
     if (attachments?.length > 0) {
       const regularAttachments = await Promise.all(
         attachments.map(async (file) => {
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const base64Content = buffer.toString('base64');
+          // Use the base64 content directly since it's already provided
+          const base64Content = file.base64;
 
           return {
             '@odata.type': '#microsoft.graph.fileAttachment',
@@ -1224,7 +1271,9 @@ export class OutlookMailManager implements MailManager {
       bcc,
       subject: subject ? he.decode(subject).trim() : '',
       content,
-      rawMessage: draftMessage, // Include raw Graph message
+      rawMessage: {
+        internalDate: draftMessage.createdDateTime || null,
+      },
     };
   }
   private async withErrorHandler<T>(

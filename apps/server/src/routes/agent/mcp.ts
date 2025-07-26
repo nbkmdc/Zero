@@ -130,8 +130,14 @@ export class ZeroMCP extends McpAgent<typeof env, Record<string, unknown>, { use
           pageToken: z.string().optional(),
         },
       },
-      async (s) => {
-        const result = await agent.listThreads({
+      async (s: {
+        folder: string;
+        query?: string;
+        maxResults?: number;
+        labelIds?: string[];
+        pageToken?: string;
+      }) => {
+        const result: { threads: { id: string; historyId: string | null; $raw?: unknown }[]; nextPageToken: string | null } = await agent.listThreads({
           folder: s.folder,
           query: s.query,
           maxResults: s.maxResults,
@@ -139,7 +145,7 @@ export class ZeroMCP extends McpAgent<typeof env, Record<string, unknown>, { use
           pageToken: s.pageToken,
         });
         const content = await Promise.all(
-          result.threads.map(async (thread) => {
+          result.threads.map(async (thread: { id: string; historyId: string | null; $raw?: unknown }) => {
             const loadedThread = await agent.getThread(thread.id);
             return [
               {
